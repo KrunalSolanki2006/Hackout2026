@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #F7F8FC;
+    color: #111827;
+  }
+
+  /* Enterprise light subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F1F3F9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+}
+
+@layer components {
+  /* Enterprise SaaS clean card styles */
+  .panel-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  .panel-card-interactive {
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .panel-card-interactive:hover {
+    border-color: #D1D5DB;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Form control standard */
+  .input-field {
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    color: #111827;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    width: 100%;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: #5546E8;
+    box-shadow: 0 0 0 3px rgba(85, 70, 232, 0.12);
+  }
+  .input-field::placeholder {
+    color: #9CA3AF;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #5546E8;
+    color: #FFFFFF;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.15s ease-in-out;
+    box-shadow: 0 1px 2px 0 rgba(85, 70, 232, 0.2);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: #4335D6;
+    box-shadow: 0 2px 4px 0 rgba(85, 70, 232, 0.3);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    color: #374151;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.15s ease-in-out;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #F9FAFB;
+    border-color: #D1D5DB;
+    color: #111827;
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #FDE8E8;
+    border: 1px solid #F8B4B4;
+    color: #9B1C1C;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.15s ease-in-out;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: #FBD5D5;
+    border-color: #F05252;
+    color: #771D1D;
+  }
+
+  /* Tabular numbers for financial and CO2e values */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
