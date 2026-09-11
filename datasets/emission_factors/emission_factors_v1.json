@@ -1,0 +1,167 @@
+[
+  {
+    "id": "EF-ENG-001",
+    "category": "energy",
+    "subtype": "grid_electricity",
+    "unit": "kWh",
+    "emission_factor": 0.82,
+    "factor_unit": "kg CO2e / kWh",
+    "source": "CEA CO2 Baseline Database for Indian Power Sector v18",
+    "scope": 2,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-ENG-002",
+    "category": "energy",
+    "subtype": "diesel_generator",
+    "unit": "litre",
+    "emission_factor": 2.68,
+    "factor_unit": "kg CO2e / litre",
+    "source": "DEFRA / IPCC Guidelines for National Greenhouse Gas Inventories",
+    "scope": 1,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-ENG-003",
+    "category": "energy",
+    "subtype": "natural_gas",
+    "unit": "m3",
+    "emission_factor": 2.03,
+    "factor_unit": "kg CO2e / m3",
+    "source": "IPCC Guidelines for Stationary Combustion",
+    "scope": 1,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-ENG-004",
+    "category": "energy",
+    "subtype": "heavy_fuel_oil",
+    "unit": "litre",
+    "emission_factor": 3.15,
+    "factor_unit": "kg CO2e / litre",
+    "source": "EPA GHG Emission Factors Hub",
+    "scope": 1,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-MAT-001",
+    "category": "material",
+    "subtype": "virgin_pet_plastic",
+    "unit": "kg",
+    "emission_factor": 2.85,
+    "factor_unit": "kg CO2e / kg",
+    "source": "Ecoinvent v3.9 / PlasticsEurope LCA",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-MAT-002",
+    "category": "material",
+    "subtype": "recycled_pet_flakes",
+    "unit": "kg",
+    "emission_factor": 0.65,
+    "factor_unit": "kg CO2e / kg",
+    "source": "Association of Plastic Recyclers LCA Study",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-MAT-003",
+    "category": "material",
+    "subtype": "virgin_hdpe_granules",
+    "unit": "kg",
+    "emission_factor": 2.41,
+    "factor_unit": "kg CO2e / kg",
+    "source": "Ecoinvent v3.9",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-MAT-004",
+    "category": "material",
+    "subtype": "virgin_cotton_yarn",
+    "unit": "kg",
+    "emission_factor": 7.45,
+    "factor_unit": "kg CO2e / kg",
+    "source": "Higg Index Materials Sustainability Index (MSI)",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-MAT-005",
+    "category": "material",
+    "subtype": "synthetic_polyester_yarn",
+    "unit": "kg",
+    "emission_factor": 5.80,
+    "factor_unit": "kg CO2e / kg",
+    "source": "Higg Index MSI",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-MAT-006",
+    "category": "material",
+    "subtype": "raw_milk_intake",
+    "unit": "litre",
+    "emission_factor": 1.35,
+    "factor_unit": "kg CO2e / litre",
+    "source": "FAO Dairy Sector Greenhouse Gas Emissions Study",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-MAT-007",
+    "category": "material",
+    "subtype": "virgin_cardboard_packaging",
+    "unit": "kg",
+    "emission_factor": 1.12,
+    "factor_unit": "kg CO2e / kg",
+    "source": "FEFCO European Database for Corrugated Board Life Cycle Studies",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-WST-001",
+    "category": "waste",
+    "subtype": "plastic_waste_landfill",
+    "unit": "kg",
+    "emission_factor": 0.045,
+    "factor_unit": "kg CO2e / kg",
+    "source": "EPA WARM Tool v15",
+    "scope": 3,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-WST-002",
+    "category": "waste",
+    "subtype": "textile_sludge_treatment",
+    "unit": "kg",
+    "emission_factor": 1.85,
+    "factor_unit": "kg CO2e / kg",
+    "source": "Textile Industry Wastewater Sludge Carbon Audit",
+    "scope": 1,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-WST-003",
+    "category": "waste",
+    "subtype": "organic_food_waste_landfill",
+    "unit": "kg",
+    "emission_factor": 1.25,
+    "factor_unit": "kg CO2e / kg",
+    "source": "IPCC Waste Sector Methane Potential",
+    "scope": 1,
+    "last_updated": "2024-01-15"
+  },
+  {
+    "id": "EF-WST-004",
+    "category": "waste",
+    "subtype": "hazardous_chemical_disposal",
+    "unit": "litre",
+    "emission_factor": 3.40,
+    "factor_unit": "kg CO2e / litre",
+    "source": "Hazardous Waste Incineration Factor Hub",
+    "scope": 1,
+    "last_updated": "2024-01-15"
+  }
+]
