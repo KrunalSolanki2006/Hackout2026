@@ -1,0 +1,10 @@
+id,sector,material,stage,unit,factor,factor_unit,source,source_version,boundary
+EF-PL-001,Manufacturing/Plastics,PET,primary material production,tonne,3861.58,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-002,Manufacturing/Plastics,PET,closed-loop recycled source,tonne,2211.58,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-003,Manufacturing/Plastics,HDPE,primary material production,tonne,3092.89,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-004,Manufacturing/Plastics,HDPE,closed-loop recycled source,tonne,1768.47,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-005,Manufacturing/Plastics,LDPE/LLDPE,primary material production,tonne,2963.59,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-006,Manufacturing/Plastics,LDPE/LLDPE,closed-loop recycled source,tonne,1095.58,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-007,Manufacturing/Plastics,PP,primary material production,tonne,2575.25292,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-008,Manufacturing/Plastics,PP,closed-loop recycled source,tonne,1310.25292,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-PL-009,Manufacturing/Plastics,PS,primary material production,tonne,4374.38685,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate

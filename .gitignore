@@ -1,16 +1,30 @@
-# Dependencies
+# Frontend dependencies & builds
 node_modules/
-
-# Production
 dist/
 dist-ssr/
+frontend/node_modules/
+frontend/dist/
 
-# Environment variables
+# Environment variables & secrets
 .env
 .env.*
 !.env.example
+backend/.env
+*.env
 
-# OS / Editor files
+# Python / Virtual environments
+venv/
+backend/venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+
+# OS & Editor files
 .DS_Store
 Thumbs.db
 .vscode/

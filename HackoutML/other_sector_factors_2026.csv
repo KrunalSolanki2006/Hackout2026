@@ -1,0 +1,6 @@
+id,sector,activity,stage,unit,factor,factor_unit,source,source_version,notes
+EF-OT-001,Energy,UK electricity grid,Scope 2 electricity,kWh,0.13096,kgCO2e/kWh,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,UK-specific; do NOT replace CEA India factor
+EF-OT-002,Materials,PP,primary material production,tonne,2575.25292,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-OT-003,Materials,PP,closed-loop recycled source,tonne,1310.25292,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-OT-004,Materials,HDPE,primary material production,tonne,3092.89,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
+EF-OT-005,Materials,HDPE,closed-loop recycled source,tonne,1768.47,kgCO2e/tonne,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Cradle-to-gate
