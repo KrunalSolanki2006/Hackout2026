@@ -1,0 +1,9 @@
+id,sector,activity,stage,unit,factor,factor_unit,source,source_version,scope
+EF-UK-FUEL-001,Energy,Natural gas,combustion,kWh (Gross CV),0.18231,kgCO2e/kWh,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1
+EF-UK-FUEL-002,Energy,Natural gas,combustion,m3,2.02633,kgCO2e/m3,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1
+EF-UK-FUEL-003,Energy,Diesel (100% mineral),combustion,litre,2.66155,kgCO2e/litre,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1
+EF-UK-FUEL-004,Energy,Diesel (average biofuel blend),combustion,litre,2.58354,kgCO2e/litre,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1
+EF-UK-FUEL-005,Energy,Petrol (100% mineral),combustion,litre,2.35372,kgCO2e/litre,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1
+EF-UK-FUEL-006,Energy,Petrol (average biofuel blend),combustion,litre,2.075,kgCO2e/litre,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1
+EF-UK-FUEL-007,Energy,Fuel oil,combustion,litre,3.17492,kgCO2e/litre,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1
+EF-UK-FUEL-008,Energy,CNG,combustion,litre,0.43885,kgCO2e/litre,UK Government GHG Conversion Factors 2026,DEFRA/DESNZ 2026,Scope 1

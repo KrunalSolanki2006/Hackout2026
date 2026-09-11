@@ -97,6 +97,11 @@ def train_model(
     return pipeline, metrics
 
 
+def generate_and_train():
+    """Compatibility alias for backend callers."""
+    pipeline, _ = train_model()
+    return pipeline
+
+
 if __name__ == "__main__":
-    from typing import Optional, List
     train_model()

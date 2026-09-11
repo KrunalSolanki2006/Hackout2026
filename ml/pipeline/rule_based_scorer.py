@@ -6,11 +6,16 @@ Acts as:
 2. The guaranteed-working fallback whenever ML inference is unavailable.
 3. The generator for synthetic ground-truth labels during ML training.
 
-Strictly follows ML_IMPLEMENTATION.md §14 and §15.
+Strictly follows ML_IMPLEMENTATION.md §14 and §15, and provides compatibility
+for both the ML API contract (score_candidates) and the backend router contract
+(score_interventions_rule_based).
 """
 
+import logging
 from typing import Dict, List, Any, Optional
 from ml.data.intervention_library import Intervention, get_intervention_library
+
+logger = logging.getLogger(__name__)
 
 # Facility size reference budgets for SME affordability calculation
 SIZE_BUDGETS: Dict[str, float] = {
@@ -91,7 +96,6 @@ def calculate_rule_score(
     Calculates a continuous suitability score (0-100) using multi-factor normalized weighting.
     """
     # 1. CO2 reduction score (0 - 100)
-    # 18.0 tCO2e reduction scale represents the top tier in SME circular interventions
     co2_score = min(100.0, (max(0.0, expected_co2_reduction) / 18.0) * 100.0)
 
     # 2. Cost score relative to facility size affordability
@@ -112,12 +116,10 @@ def calculate_rule_score(
     diff_score = DIFFICULTY_SCORES.get(diff_clean, 65.0)
 
     # 4. Leak contribution urgency score
-    # Normalizing 0.0 - 0.50 (0% to 50% contribution) into 0-100
     leak_pct = leak_contribution_pct if leak_contribution_pct <= 1.0 else (leak_contribution_pct / 100.0)
     urgency_score = min(100.0, max(10.0, leak_pct * 200.0))
 
     # Multi-factor weighted blend:
-    # 35% CO2 impact, 25% Cost, 20% Ease of implementation, 20% Leak urgency
     raw_score = (
         0.35 * co2_score
         + 0.25 * cost_score
@@ -137,18 +139,7 @@ def score_candidates(
     candidate_interventions: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Public rule-based recommendation scoring function.
-
-    Contract:
-    Returns List[Dict[str, Any]]:
-    [
-        {
-            "intervention_id": "INT-001",
-            "score": 91.0,
-            "score_source": "rule_based",
-            "explanation_flags": ["..."]
-        }, ...
-    ]
+    Public rule-based recommendation scoring function matching ML_IMPLEMENTATION.md.
     """
     industry = str(facility_profile.get("industry", "plastic")).strip().lower()
     facility_size = str(facility_profile.get("facility_size", "medium")).strip().lower()
@@ -156,7 +147,6 @@ def score_candidates(
 
     library = get_intervention_library()
 
-    # Pre-process leak points
     if not leak_points:
         return []
 
@@ -168,14 +158,12 @@ def score_candidates(
         if leak_contrib > 1.0:
             leak_contrib /= 100.0
 
-        # Candidate intervention list: either provided or filtered from library
         if candidate_interventions is not None and len(candidate_interventions) > 0:
             candidates = candidate_interventions
         else:
             candidates = library.filter_candidates(industry=industry, leak_category=leak_cat)
 
         for cand in candidates:
-            # Handle both Intervention objects and dicts
             if isinstance(cand, dict):
                 int_id = cand["intervention_id"]
                 name = cand.get("name", "")
@@ -199,12 +187,11 @@ def score_candidates(
                 app_ind = cand.applicable_industries
                 app_leak = cand.applicable_leak_types
 
-            # Eligibility gate: check industry and leak type match
             ind_ok = any(industry in i.lower() or i.lower() in industry for i in app_ind)
             leak_ok = any(leak_cat in lt.lower() or lt.lower() in leak_cat for lt in app_leak)
 
             if not (ind_ok and leak_ok):
-                continue  # Filter out non-matching candidates
+                continue
 
             score_val = calculate_rule_score(
                 facility_size=facility_size,
@@ -235,7 +222,6 @@ def score_candidates(
                 "explanation_flags": flags,
             })
 
-    # Deduplicate by intervention_id keeping the highest score across leak points
     deduped: Dict[str, Dict[str, Any]] = {}
     for item in results:
         iid = item["intervention_id"]
@@ -244,3 +230,92 @@ def score_candidates(
 
     ranked = sorted(deduped.values(), key=lambda x: x["score"], reverse=True)
     return ranked
+
+
+def score_interventions_rule_based(
+    facility_industry: str,
+    leak_points: List[Dict[str, Any]],
+    interventions: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """
+    Backend-compatible rule-based scorer for recommendation_engine.py.
+    """
+    leak_map = {}
+    for lp in leak_points:
+        ref = lp.get("subtype") or lp.get("name") or lp.get("leak_point_ref")
+        pct = float(lp.get("contribution_pct", 0.0) or lp.get("pct", 0.0))
+        if ref:
+            leak_map[ref.lower()] = pct
+
+    results = []
+
+    for intervention in interventions:
+        score = 0.0
+        explanations = []
+
+        supported_ind = [ind.lower() for ind in intervention.get("supported_industries", [])]
+        if facility_industry.lower() in supported_ind or "all" in supported_ind:
+            score += 35.0
+            explanations.append(f"Strong industry fit for {facility_industry.capitalize()} manufacturing")
+        else:
+            score += 10.0
+
+        applicable_leaks = intervention.get("applicable_leak_types", [])
+        matched_leak_ref = None
+        max_leak_pct = 0.0
+
+        for leak_ref in applicable_leaks:
+            leak_key = leak_ref.lower()
+            if leak_key in leak_map:
+                leak_pct = leak_map[leak_key]
+                if leak_pct > max_leak_pct:
+                    max_leak_pct = leak_pct
+                    matched_leak_ref = leak_ref
+
+        if max_leak_pct > 0:
+            leak_score = min(35.0, (max_leak_pct / 100.0) * 45.0)
+            score += leak_score
+            if max_leak_pct >= 25.0:
+                explanations.append(f"High emission contribution from targeted leak point ({max_leak_pct:.1f}%)")
+            else:
+                explanations.append(f"Directly targets identified leak point ({matched_leak_ref})")
+        else:
+            matched_leak_ref = applicable_leaks[0] if applicable_leaks else "general"
+
+        co2_max = float(intervention.get("estimated_co2_reduction_max", 15.0))
+        co2_score = min(15.0, (co2_max / 30.0) * 15.0)
+        score += co2_score
+        if co2_max >= 18.0:
+            explanations.append(f"High CO2 reduction potential (up to {co2_max:.0f}%)")
+
+        diff = str(intervention.get("implementation_difficulty", "medium")).lower()
+        if diff == "low":
+            score += 15.0
+            explanations.append("Low implementation difficulty and fast deployment")
+        elif diff == "medium":
+            score += 10.0
+            explanations.append("Moderate payback period with reasonable investment")
+        else:
+            score += 5.0
+
+        final_score = int(round(min(100.0, max(10.0, score))))
+
+        results.append({
+            "intervention": intervention,
+            "score": final_score,
+            "score_source": "rule_based",
+            "estimated_cost_range": [
+                intervention.get("estimated_cost_min", 0),
+                intervention.get("estimated_cost_max", 0)
+            ],
+            "estimated_co2_reduction_range": [
+                intervention.get("estimated_co2_reduction_min", 0.0),
+                intervention.get("estimated_co2_reduction_max", 0.0)
+            ],
+            "payback_period_months": intervention.get("payback_period_months", 24),
+            "explanation": explanations if explanations else ["Applicable circular economy intervention"],
+            "applicable_leak_point": matched_leak_ref or "general"
+        })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results

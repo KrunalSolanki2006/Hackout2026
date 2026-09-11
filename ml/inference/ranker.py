@@ -1,8 +1,11 @@
 """
 ML Recommendation Ranker and Public Scoring Interface.
 
-Exposes the unified recommendation interface:
-    score(facility_profile, leak_points, candidate_interventions) -> List[Dict[str, Any]]
+Exposes:
+1. score(facility_profile, leak_points, candidate_interventions) -> List[Dict[str, Any]]
+   Matching ML_IMPLEMENTATION.md §16.
+2. score_interventions(facility_industry, leak_points, interventions) -> List[Dict[str, Any]]
+   Matching backend recommendation_engine.py expectations.
 
 Guarantees:
 - In-process scikit-learn GradientBoostingRegressor inference
@@ -12,6 +15,7 @@ Guarantees:
 - Identical JSON response contract for both ML and Fallback modes
 """
 
+import os
 import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -22,6 +26,7 @@ import pandas as pd
 from ml.data.intervention_library import get_intervention_library, Intervention
 from ml.pipeline.rule_based_scorer import (
     score_candidates as rule_based_score_candidates,
+    score_interventions_rule_based,
     compute_explanation_flags,
     SIZE_BUDGETS,
 )
@@ -29,7 +34,7 @@ from ml.pipeline.preprocessor import ALL_FEATURE_COLUMNS
 
 logger = logging.getLogger(__name__)
 
-# Global cached model instance to avoid per-request disk reads
+# Global cached model instance
 _CACHED_MODEL: Optional[Any] = None
 _CACHED_MODEL_PATH: Optional[str] = None
 
@@ -46,7 +51,6 @@ def get_model(model_path: Optional[str] = None) -> Optional[Any]:
     if _CACHED_MODEL is not None:
         return _CACHED_MODEL
 
-    # Search locations
     root = Path(__file__).resolve().parent.parent.parent
     if model_path:
         possible_paths = [Path(model_path)]
@@ -54,6 +58,7 @@ def get_model(model_path: Optional[str] = None) -> Optional[Any]:
         possible_paths = [
             root / "ml" / "models" / "recommender_v1.joblib",
             root / "models" / "recommender_v1.joblib",
+            root / "backend" / "ml" / "models" / "recommender_v1.joblib",
         ]
 
     for p in possible_paths:
@@ -71,6 +76,11 @@ def get_model(model_path: Optional[str] = None) -> Optional[Any]:
     return None
 
 
+def load_ml_model(model_path: str = None) -> bool:
+    """Compatibility function for backend."""
+    return get_model(model_path) is not None
+
+
 def score(
     facility_profile: Dict[str, Any],
     leak_points: List[Dict[str, Any]],
@@ -79,31 +89,7 @@ def score(
 ) -> List[Dict[str, Any]]:
     """
     Unified public inference entry point for recommendations.
-
-    Parameters:
-        facility_profile: Dict containing at least:
-            - industry: str (e.g. "plastic", "textile", "food")
-            - facility_size: str ("small", "medium", "large")
-        leak_points: List of dicts representing leak points, each containing:
-            - category: str ("energy", "materials", "waste")
-            - contribution_pct: float (e.g. 0.43 or 43.0)
-            - leak_id / name (optional)
-        candidate_interventions: Optional list of Intervention objects or dicts.
-            If None, candidate interventions are retrieved and filtered from the InterventionLibrary.
-        model_path: Optional path override to the .joblib artifact.
-
-    Returns:
-        List of ranked recommendations sorted by score descending:
-        [
-            {
-                "intervention_id": "INT-001",
-                "score": 91.0,
-                "score_source": "ml",  # or "rule_based" if fallback occurred
-                "explanation_flags": ["High emission contribution", ...]
-            }, ...
-        ]
     """
-    # Safe validation of minimal inputs
     if not facility_profile or not leak_points:
         return []
 
@@ -111,7 +97,6 @@ def score(
     facility_size = str(facility_profile.get("facility_size", "medium")).strip().lower()
     budget = SIZE_BUDGETS.get(facility_size, SIZE_BUDGETS["medium"])
 
-    # Attempt ML scoring
     try:
         model = get_model(model_path)
         if model is None:
@@ -132,7 +117,6 @@ def score(
             if leak_contrib > 1.0:
                 leak_contrib /= 100.0
 
-            # Gather candidate interventions
             if candidate_interventions is not None and len(candidate_interventions) > 0:
                 candidates = candidate_interventions
             else:
@@ -160,14 +144,12 @@ def score(
                     app_ind = cand.applicable_industries
                     app_leak = cand.applicable_leak_types
 
-                # Strict eligibility gating:
                 ind_fit = any(industry in i.lower() or i.lower() in industry for i in app_ind)
                 leak_fit = any(leak_cat in lt.lower() or lt.lower() in leak_cat for lt in app_leak)
 
                 if not (ind_fit and leak_fit):
                     continue
 
-                # Build model input feature row
                 f_row = {
                     "industry": industry,
                     "facility_size": facility_size,
@@ -181,7 +163,6 @@ def score(
                 }
                 feature_rows.append(f_row)
 
-                # Store metadata for explanation flags
                 flags = compute_explanation_flags(
                     leak_contribution_pct=leak_contrib,
                     intervention_cost=cost,
@@ -203,7 +184,6 @@ def score(
         if not feature_rows:
             return []
 
-        # Predict with ML pipeline
         X_df = pd.DataFrame(feature_rows)[ALL_FEATURE_COLUMNS]
         preds = model.predict(X_df)
 
@@ -221,7 +201,6 @@ def score(
                 "explanation_flags": item_meta["explanation_flags"],
             })
 
-        # Deduplicate keeping the highest score per intervention
         deduped: Dict[str, Dict[str, Any]] = {}
         for r in results:
             iid = r["intervention_id"]
@@ -232,9 +211,116 @@ def score(
         return ranked
 
     except Exception as e:
-        logger.error("ML recommendation scoring failed with exception: %s. Falling back to rule-based scorer.", e)
+        logger.error("ML recommendation scoring failed: %s. Falling back to rule-based scorer.", e)
         return rule_based_score_candidates(
             facility_profile=facility_profile,
             leak_points=leak_points,
             candidate_interventions=candidate_interventions,
         )
+
+
+def score_interventions(
+    facility_industry: str,
+    leak_points: List[Dict[str, Any]],
+    interventions: List[Dict[str, Any]],
+    model_path: str = None,
+) -> List[Dict[str, Any]]:
+    """
+    Backend router-compatible scoring function for recommendation_engine.py.
+    """
+    try:
+        model = get_model(model_path)
+        if model is None:
+            return score_interventions_rule_based(facility_industry, leak_points, interventions)
+
+        leak_map = {}
+        for lp in leak_points:
+            ref = lp.get("subtype") or lp.get("name") or lp.get("leak_point_ref") or lp.get("category", "")
+            pct = float(lp.get("contribution_pct", 0.0) or lp.get("pct", 0.0))
+            if ref:
+                leak_map[ref.lower()] = pct
+
+        feature_rows = []
+        for intervention in interventions:
+            cat = intervention.get("category", "energy").lower()
+            leak_cat = cat
+            diff = str(intervention.get("implementation_difficulty", "medium")).lower()
+            cost = float(intervention.get("estimated_cost_max", intervention.get("estimated_cost", 25000.0)))
+            co2_red = float(intervention.get("estimated_co2_reduction_max", intervention.get("expected_co2_reduction", 10.0)))
+
+            supported_ind = [ind.lower() for ind in intervention.get("supported_industries", intervention.get("applicable_industries", []))]
+            is_ind_match = (facility_industry.lower() in supported_ind or "all" in supported_ind)
+
+            applicable_leaks = intervention.get("applicable_leak_types", [cat])
+            max_leak_pct = 0.25
+            for l_ref in applicable_leaks:
+                if l_ref.lower() in leak_map:
+                    max_leak_pct = max(max_leak_pct, leak_map[l_ref.lower()] / (100.0 if leak_map[l_ref.lower()] > 1.0 else 1.0))
+
+            feature_rows.append({
+                "industry": facility_industry.lower(),
+                "facility_size": "medium",
+                "leak_category": leak_cat,
+                "intervention_category": cat,
+                "implementation_difficulty": diff,
+                "leak_contribution": max_leak_pct,
+                "intervention_cost": cost,
+                "expected_CO2_reduction": co2_red,
+                "industry_fit": is_ind_match,
+            })
+
+        X_df = pd.DataFrame(feature_rows)[ALL_FEATURE_COLUMNS]
+        raw_scores = model.predict(X_df)
+
+        results = []
+        for idx, intervention in enumerate(interventions):
+            score_val = int(round(min(100.0, max(10.0, float(raw_scores[idx])))))
+
+            explanations = []
+            supported_ind = [ind.lower() for ind in intervention.get("supported_industries", intervention.get("applicable_industries", []))]
+            if facility_industry.lower() in supported_ind:
+                explanations.append(f"Strong industry fit for {facility_industry.capitalize()} manufacturing")
+
+            applicable_leaks = intervention.get("applicable_leak_types", [])
+            matched_leak = None
+            max_pct = 0.0
+            for l_ref in applicable_leaks:
+                if l_ref.lower() in leak_map and leak_map[l_ref.lower()] > max_pct:
+                    max_pct = leak_map[l_ref.lower()]
+                    matched_leak = l_ref
+
+            if max_pct >= 25.0:
+                explanations.append(f"High emission contribution from targeted leak point ({max_pct:.1f}%)")
+            elif matched_leak:
+                explanations.append(f"Directly targets identified leak point ({matched_leak})")
+
+            co2_m = float(intervention.get("estimated_co2_reduction_max", 15.0))
+            if co2_m >= 18.0:
+                explanations.append(f"High CO2 reduction potential (up to {co2_m:.0f}%)")
+
+            if not explanations:
+                explanations = ["Ranked circular economy intervention via ML model"]
+
+            results.append({
+                "intervention": intervention,
+                "score": score_val,
+                "score_source": "ml",
+                "estimated_cost_range": [
+                    intervention.get("estimated_cost_min", 0),
+                    intervention.get("estimated_cost_max", 0)
+                ],
+                "estimated_co2_reduction_range": [
+                    intervention.get("estimated_co2_reduction_min", 0.0),
+                    intervention.get("estimated_co2_reduction_max", 0.0)
+                ],
+                "payback_period_months": intervention.get("payback_period_months", 24),
+                "explanation": explanations,
+                "applicable_leak_point": matched_leak or (applicable_leaks[0] if applicable_leaks else "general")
+            })
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+        return results
+
+    except Exception as e:
+        logger.error(f"Error during ML inference: {e}. Falling back to rule-based scorer.")
+        return score_interventions_rule_based(facility_industry, leak_points, interventions)
