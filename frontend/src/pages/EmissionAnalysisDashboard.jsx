@@ -26,33 +26,9 @@ export default function EmissionAnalysisDashboard() {
   const handleExportCSV = async () => {
     try {
       await assessmentsApi.exportReport(assessmentId, 'csv');
-      const items = summary?.line_items || [];
-      const headers = ['Category', 'Subtype', 'Quantity', 'Unit', 'Emission_Factor', 'Factor_Unit', 'Scope', 'CO2e_tonnes', 'Contribution_Pct', 'Source'];
-      const rows = items.map((i) => [
-        i.category,
-        i.subtype,
-        i.quantity,
-        i.unit,
-        i.emission_factor,
-        `"${i.factor_unit}"`,
-        i.scope,
-        i.co2e,
-        (i.pct_contribution * 100).toFixed(1) + '%',
-        `"${i.factor_source}"`,
-      ]);
-
-      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `carbotrack_emissions_${assessmentId}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
       addToast('Auditable emissions CSV exported successfully!');
     } catch (e) {
-      addToast('Export failed', 'error');
+      addToast('Export failed: ' + (e.message || 'Unknown error'), 'error');
     }
   };
 

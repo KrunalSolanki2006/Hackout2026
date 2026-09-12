@@ -7,6 +7,7 @@ import {
   simulateEngine,
   getRoadmapEngine,
 } from './mockEngine';
+import { exportAssessmentPDF, exportAssessmentCSV } from '../utils/reportExporter';
 
 // Initialize mock store on load
 initMockStore();
@@ -68,19 +69,16 @@ export const apiClient = {
         });
       } catch (e) { /* fallback */ }
     }
-    await new Promise((r) => setTimeout(r, 200));
-    return {
-      success: true,
-      data: {
-        user: {
-          id: 'usr-001',
-          name: 'Priya Sharma (Plant Manager)',
-          email: email || 'operator@abcplastics.com',
-          role: 'operator',
-        },
-        token: 'mock-jwt-token-carbotrack-2026',
-      },
-    };
+    await new Promise((r) => setTimeout(r, 150));
+    try {
+      const authRes = mockStore.loginUser(email, password);
+      return {
+        success: true,
+        data: authRes,
+      };
+    } catch (err) {
+      throw new ApiError(err.message || 'Invalid credentials', 'AUTH_ERROR', null, 401);
+    }
   },
 
   async signup(data) {
@@ -92,19 +90,32 @@ export const apiClient = {
         });
       } catch (e) { /* fallback */ }
     }
-    await new Promise((r) => setTimeout(r, 200));
-    return {
-      success: true,
-      data: {
-        user: {
-          id: `usr-${Date.now()}`,
-          name: data.name,
-          email: data.email,
-          role: data.role || 'operator',
-        },
-        token: 'mock-jwt-token-carbotrack-2026',
-      },
-    };
+    await new Promise((r) => setTimeout(r, 150));
+    try {
+      const authRes = mockStore.signupUser(data);
+      return {
+        success: true,
+        data: authRes,
+      };
+    } catch (err) {
+      throw new ApiError(err.message || 'Registration failed', 'SIGNUP_ERROR', null, 400);
+    }
+  },
+
+  // Assessment Password Security (Manager sets, Employee verifies)
+  async setAssessmentPassword(assessmentId, password) {
+    mockStore.setAssessmentPassword(assessmentId, password);
+    return { success: true };
+  },
+
+  async getAssessmentPassword(assessmentId) {
+    const password = mockStore.getAssessmentPassword(assessmentId);
+    return { success: true, data: { password } };
+  },
+
+  async verifyAssessmentAccess(assessmentId, password, currentUser) {
+    const verified = mockStore.verifyAssessmentAccess(assessmentId, password, currentUser);
+    return { success: true, data: { verified } };
   },
 
   // Facilities
@@ -145,10 +156,10 @@ export const apiClient = {
         });
       } catch (e) { /* fallback */ }
     }
-    const facility = mockStore.createFacility(data);
+    const { facility, assessment } = mockStore.createFacility(data);
     return {
       success: true,
-      data: { facility },
+      data: { facility, assessment },
     };
   },
 
@@ -178,15 +189,23 @@ export const apiClient = {
     const assessments = mockStore.getAssessments();
     let assessment = assessments.find((a) => a.id === id);
     if (!assessment) {
-      assessment = assessments[0];
+      assessment = assessments[assessments.length - 1] || assessments[0];
     }
-    const inputs = mockStore.getInputs(assessment.id);
+    const inputs = assessment ? mockStore.getInputs(assessment.id) : [];
     return {
       success: true,
       data: {
         assessment,
         inputs,
       },
+    };
+  },
+
+  async saveInputs(assessmentId, inputs) {
+    const saved = mockStore.saveAssessmentInputs(assessmentId, inputs);
+    return {
+      success: true,
+      data: { inputs: saved },
     };
   },
 
@@ -260,6 +279,27 @@ export const apiClient = {
       assessments[idx].total_co2e = result.total_co2e;
       assessments[idx].completed_at = new Date().toISOString();
       localStorage.setItem('carbotrack_assessments', JSON.stringify(assessments));
+
+      // Synchronize history
+      try {
+        const history = mockStore.getHistory();
+        const asm = assessments[idx];
+        const existingHist = history.find((h) => h.assessment_id === assessmentId);
+        if (existingHist) {
+          existingHist.total_co2e = result.total_co2e;
+          existingHist.recorded_at = new Date().toISOString();
+        } else {
+          history.push({
+            assessment_id: assessmentId,
+            facility_id: asm?.facility_id || 'fac-abc-001',
+            total_co2e: result.total_co2e,
+            recorded_at: new Date().toISOString(),
+            status: 'complete',
+            interventions_applied: 0,
+          });
+        }
+        localStorage.setItem('carbotrack_history', JSON.stringify(history));
+      } catch (e) {}
     }
 
     return {
@@ -318,7 +358,10 @@ export const apiClient = {
         return await request(`/assessments/${assessmentId}/recommendations${qs ? `?${qs}` : ''}`);
       } catch (e) { /* fallback */ }
     }
-    const facility = mockStore.getFacilities()[0];
+    const assessments = mockStore.getAssessments();
+    const asm = assessments.find((a) => a.id === assessmentId);
+    const facilities = mockStore.getFacilities();
+    const facility = (asm && facilities.find((f) => f.id === asm.facility_id)) || facilities[0];
     const inputs = mockStore.getInputs(assessmentId);
     const summary = calculateAssessmentEngine(inputs);
     const leakPoints = deriveLeakPoints(summary);
@@ -439,6 +482,14 @@ export const apiClient = {
     };
   },
 
+  async addHistoryRecord(record) {
+    const item = mockStore.addHistoryRecord(record);
+    return {
+      success: true,
+      data: { record: item },
+    };
+  },
+
   // Reports & Export
   async exportReport(assessmentId, format = 'pdf') {
     if (!ALWAYS_MOCK) {
@@ -450,22 +501,40 @@ export const apiClient = {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
-        if (!res.ok) throw new Error(`Export failed with status ${res.status}`);
-        const blob = await res.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = `assessment_${assessmentId}_export.${format === 'csv' ? 'csv' : 'txt'}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-        return { success: true };
+        if (res.ok) {
+          const blob = await res.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `assessment_${assessmentId}_export.${format === 'csv' ? 'csv' : 'pdf'}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+          return { success: true };
+        }
       } catch (e) {
-        console.warn('[API] Live export failed, falling back:', e);
+        console.warn('[API] Live export failed, falling back to client-side generator:', e);
       }
     }
-    await new Promise((r) => setTimeout(r, 600));
+
+    await new Promise((r) => setTimeout(r, 400));
+
+    // High-fidelity fallback client export with genuine downloadable files
+    const assessments = mockStore.getAssessments();
+    const asm = assessments.find((a) => a.id === assessmentId) || { id: assessmentId, facility_id: 'fac-abc-001' };
+    const facilities = mockStore.getFacilities();
+    const facility = facilities.find((f) => f.id === asm.facility_id) || facilities[0];
+    const inputs = mockStore.getInputs(assessmentId);
+    const summary = calculateAssessmentEngine(inputs);
+    const leakPoints = deriveLeakPoints(summary);
+
+    if (format === 'csv') {
+      exportAssessmentCSV({ facility, assessment: asm, summary });
+    } else {
+      exportAssessmentPDF({ facility, assessment: asm, summary, leakPoints });
+    }
+
     return {
       success: true,
       data: {
@@ -473,7 +542,6 @@ export const apiClient = {
           id: `rep-${Date.now()}`,
           assessment_id: assessmentId,
           format,
-          file_url: `#download-${format}`,
           generated_at: new Date().toISOString(),
         },
       },

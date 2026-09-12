@@ -14,12 +14,20 @@ import {
   Recycle,
   FileCheck2,
   Info,
+  Lock,
+  Unlock,
+  Key,
+  Eye,
+  EyeOff,
+  ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 import StepperNav from '../components/StepperNav';
 import ErrorBanner from '../components/ErrorBanner';
 import { assessmentsApi } from '../api/assessments';
 import { useFacilityAssessment } from '../context/FacilityAssessmentContext';
 import { INITIAL_DEMO_INPUTS } from '../api/mockData';
+import { generateIndustryBaselineInputs } from '../api/mockEngine';
 
 const WIZARD_STEPS = [
   { id: 'facility', label: 'Facility', sublabel: 'Review context' },
@@ -64,7 +72,19 @@ const WASTE_TREATMENTS = [
 export default function IntakeWizard() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { activeFacility, activeAssessment, setActiveAssessment, addToast } = useFacilityAssessment();
+  const { activeFacility, activeAssessment, setActiveAssessment, addToast, user } = useFacilityAssessment();
+
+  const asmId = activeAssessment?.id || 'asm-abc-001';
+  const isManager = user?.role === 'manager';
+
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    if (user?.role === 'manager') return true;
+    return sessionStorage.getItem(`carbotrack_unlocked_${asmId}`) === 'true';
+  });
+  const [assessmentPassword, setAssessmentPassword] = useState('manager123');
+  const [enteredPasscode, setEnteredPasscode] = useState('');
+  const [unlockError, setUnlockError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [inputs, setInputs] = useState([]);
@@ -77,11 +97,25 @@ export default function IntakeWizard() {
       const assessmentId = activeAssessment?.id || 'asm-abc-001';
       try {
         setLoading(true);
-        const res = await assessmentsApi.getById(assessmentId);
+        const [res, pwdRes] = await Promise.all([
+          assessmentsApi.getById(assessmentId),
+          assessmentsApi.getPassword(assessmentId),
+        ]);
+
+        if (pwdRes?.data?.password) {
+          setAssessmentPassword(pwdRes.data.password);
+        }
+
         if (res?.data?.inputs && res.data.inputs.length > 0) {
-          setInputs(res.data.inputs);
+          // Tag any existing inputs with current assessmentId
+          setInputs(res.data.inputs.map((i) => ({ ...i, assessment_id: assessmentId })));
         } else {
-          setInputs(INITIAL_DEMO_INPUTS);
+          const baseline = generateIndustryBaselineInputs(
+            assessmentId,
+            activeFacility?.industry,
+            activeFacility?.production_volume
+          );
+          setInputs(baseline);
         }
       } catch (err) {
         console.error('Failed to load inputs:', err);
@@ -90,12 +124,46 @@ export default function IntakeWizard() {
       }
     }
     loadDraft();
-  }, [activeAssessment]);
+  }, [activeAssessment, activeFacility]);
+
+  const handleSaveAssessmentPassword = async (newPassword) => {
+    const trimmed = (newPassword || '').trim();
+    if (!trimmed) {
+      setError('Assessment security passcode cannot be empty');
+      return;
+    }
+    try {
+      await assessmentsApi.setPassword(asmId, trimmed);
+      setAssessmentPassword(trimmed);
+      addToast('Assessment security password updated for employee access.');
+    } catch (err) {
+      setError('Failed to update assessment password');
+    }
+  };
+
+  const handleVerifyUnlock = async (e) => {
+    e?.preventDefault();
+    setUnlockError(null);
+    try {
+      const res = await assessmentsApi.verifyPassword(asmId, enteredPasscode, user);
+      if (res?.data?.verified) {
+        setIsUnlocked(true);
+        sessionStorage.setItem(`carbotrack_unlocked_${asmId}`, 'true');
+        addToast('Authorization verified: Direct company assessment modification unlocked!');
+      } else {
+        setUnlockError('Incorrect password. Enter your registered employee password or the manager-set assessment passcode.');
+      }
+    } catch (err) {
+      setUnlockError('Verification failed. Please try again.');
+    }
+  };
 
   const addRow = (category) => {
     const defaultSubtype = SUBTYPE_OPTIONS[category][0];
+    const asmId = activeAssessment?.id || 'asm-abc-001';
     const newRow = {
       id: `inp-temp-${Date.now()}`,
+      assessment_id: asmId,
       category,
       subtype: defaultSubtype.value,
       quantity: '',
@@ -170,13 +238,24 @@ export default function IntakeWizard() {
 
     try {
       const asmId = activeAssessment?.id || 'asm-abc-001';
-      localStorage.setItem('carbotrack_inputs', JSON.stringify(inputs));
+      const sanitizedInputs = inputs.map((inp, idx) => ({
+        ...inp,
+        id: inp.id && !inp.id.startsWith('inp-temp-') ? inp.id : `inp-${Date.now()}-${idx}`,
+        assessment_id: asmId,
+        quantity: Number(inp.quantity) || 0,
+      }));
+
+      // Persist inputs to database / store for this assessment
+      await assessmentsApi.saveInputs(asmId, sanitizedInputs);
+      if (assessmentPassword) {
+        await assessmentsApi.setPassword(asmId, assessmentPassword);
+      }
       const res = await assessmentsApi.calculate(asmId);
 
       if (res?.data?.assessment) {
         setActiveAssessment(res.data.assessment);
         addToast(
-          `Calculation successful: ${res.data.assessment.total_co2e} t CO₂e computed across ${inputs.length} lines!`
+          `Calculation successful: ${res.data.assessment.total_co2e} t CO₂e computed across ${sanitizedInputs.length} lines!`
         );
         navigate(`/assessment/${asmId}/overview`);
       }
@@ -188,12 +267,162 @@ export default function IntakeWizard() {
   };
 
   const handleFillDemo = () => {
-    setInputs(INITIAL_DEMO_INPUTS);
-    addToast('Populated with ABC Plastics demo dataset.');
+    const asmId = activeAssessment?.id || 'asm-abc-001';
+    const baseline = generateIndustryBaselineInputs(
+      asmId,
+      activeFacility?.industry || 'plastic',
+      activeFacility?.production_volume || 50000
+    );
+    setInputs(baseline);
+    addToast(`Populated standard ${activeFacility?.industry || 'manufacturing'} baseline dataset.`);
   };
+
+  // If user is Employee and not yet authorized for this assessment intake, show security lock gate
+  if (!isUnlocked) {
+    return (
+      <div className="max-w-xl mx-auto py-12 px-4">
+        <div className="panel-card p-8 shadow-card border-indigo-100 text-center">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-4 shadow-xs">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+
+          <span className="px-2.5 py-1 rounded-full bg-amber-100/80 text-amber-900 text-[11px] font-bold uppercase tracking-wider">
+            Employee Role • Authorization Required
+          </span>
+
+          <h2 className="text-xl font-bold text-gray-900 mt-3">
+            Company Assessment Modification Locked
+          </h2>
+
+          <p className="text-xs text-gray-600 mt-2 leading-relaxed max-w-md mx-auto">
+            Creating new assessment intakes is restricted to Managers. To modify company assessment intake data for <strong className="text-gray-900">{activeFacility?.name || 'this facility'}</strong>, please enter your registered <strong>Employee password</strong> or the <strong>Manager-set assessment passcode</strong>.
+          </p>
+
+          {unlockError && (
+            <div className="mt-4">
+              <ErrorBanner message={unlockError} onDismiss={() => setUnlockError(null)} />
+            </div>
+          )}
+
+          <form onSubmit={handleVerifyUnlock} className="mt-6 text-left max-w-sm mx-auto space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Authorization Password / Passcode
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={enteredPasscode}
+                  onChange={(e) => setEnteredPasscode(e.target.value)}
+                  placeholder="Employee password or manager passcode"
+                  className="input-field pl-9 pr-9 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1 text-gray-400 hover:text-gray-600 absolute right-2.5 top-1/2 -translate-y-1/2"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">
+                Direct verification with your employee password (<code className="text-[#5546E8]">employee123</code>) or the manager assessment passcode (<code className="text-[#5546E8]">manager123</code>).
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                type="submit"
+                className="btn-primary w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-2"
+              >
+                <Key className="w-4 h-4" />
+                <span>Verify & Unlock Company Modification</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate(`/assessment/${asmId}/overview`)}
+                className="btn-secondary w-full py-2 text-xs text-gray-600 flex items-center justify-center gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Overview Dashboard</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-4 space-y-6">
+      {/* Role & Security Banner */}
+      {isManager ? (
+        <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100 text-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#5546E8] text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-gray-900">Assessment Security Passcode</h3>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-100 text-[#5546E8]">
+                    Manager Control
+                  </span>
+                </div>
+                <p className="text-gray-500 text-[11px] mt-0.5">
+                  Created by manager to protect this assessment. Employees can unlock direct company intake modification using this passcode or their employee password.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <div className="relative w-44">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={assessmentPassword}
+                  onChange={(e) => setAssessmentPassword(e.target.value)}
+                  className="input-field text-xs pr-8 py-1.5 font-mono"
+                  placeholder="Set passcode"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1 text-gray-400 hover:text-gray-600 absolute right-2 top-1/2 -translate-y-1/2"
+                >
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSaveAssessmentPassword(assessmentPassword)}
+                className="btn-primary text-xs py-1.5 px-3 whitespace-nowrap"
+              >
+                Save Passcode
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-md bg-emerald-500 text-white flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="font-bold">Employee Authorized Access:</span> Direct company assessment modification unlocked for this session.
+            </div>
+          </div>
+          <span className="text-[10px] font-mono uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold border border-emerald-200">
+            Authorized
+          </span>
+        </div>
+      )}
+
       {/* Stepper Navigation Card */}
       <div className="panel-card p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-gray-100 pb-4">
@@ -259,6 +488,22 @@ export default function IntakeWizard() {
                 <span className="text-gray-400">Scale:</span>
                 <p className="font-semibold text-gray-900 capitalize mt-0.5">{activeFacility?.facility_size || 'medium'} (SME)</p>
               </div>
+            </div>
+
+            {/* Assessment Security Passcode display in Step 0 */}
+            <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-gray-800 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-[#5546E8]" />
+                  <span>Assessment Security Passcode (Created by Manager)</span>
+                </span>
+                <span className="font-mono font-bold text-[#5546E8] bg-white px-2 py-0.5 rounded border border-indigo-100">
+                  {showPassword ? assessmentPassword : '••••••••'}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500">
+                This passcode controls authorization for company assessment intake modifications by plant personnel.
+              </p>
             </div>
           </div>
         )}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ArrowRight } from 'lucide-react';
+import { Building2, ArrowRight, Lock, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { facilitiesApi } from '../api/facilities';
 import { assessmentsApi } from '../api/assessments';
 import { useFacilityAssessment } from '../context/FacilityAssessmentContext';
@@ -8,15 +8,18 @@ import ErrorBanner from '../components/ErrorBanner';
 
 export default function FacilitySetup() {
   const navigate = useNavigate();
-  const { setActiveFacility, setActiveAssessment, addToast } = useFacilityAssessment();
+  const { addFacility, addToast, user, activeAssessment } = useFacilityAssessment();
 
   const [name, setName] = useState('');
   const [industry, setIndustry] = useState('plastic');
   const [facilitySize, setFacilitySize] = useState('medium');
   const [region, setRegion] = useState('');
   const [productionVolume, setProductionVolume] = useState('');
+  const [assessmentPassword, setAssessmentPassword] = useState('manager123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const isEmployee = user?.role === 'employee';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,20 +49,50 @@ export default function FacilitySetup() {
       });
 
       const newFacility = facRes.data.facility;
-      setActiveFacility(newFacility);
+      const newAssessment = facRes.data.assessment;
 
-      const asmRes = await assessmentsApi.create(newFacility.id);
-      const newAsm = asmRes.data.assessment;
-      setActiveAssessment(newAsm);
+      // Save manager-created assessment passcode
+      await assessmentsApi.setPassword(newAssessment.id, assessmentPassword.trim() || 'manager123');
 
-      addToast(`Facility "${newFacility.name}" configured successfully!`);
-      navigate(`/facility/${newFacility.id}/intake`);
+      addFacility(newFacility, newAssessment);
+
+      addToast(`Facility "${newFacility.name}" registered and baseline carbon audit generated!`);
+      navigate(`/assessment/${newAssessment.id}/overview`);
     } catch (err) {
       setError(err.message || 'Failed to create facility profile');
     } finally {
       setLoading(false);
     }
   };
+
+  if (isEmployee) {
+    const asmId = activeAssessment?.id || 'asm-abc-001';
+    return (
+      <div className="max-w-md mx-auto py-16 px-4 text-center">
+        <div className="panel-card p-8 shadow-card border-indigo-100">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-4">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <span className="px-2.5 py-1 rounded-full bg-amber-100/80 text-amber-900 text-[11px] font-bold uppercase tracking-wider">
+            Employee Role • Access Restricted
+          </span>
+          <h2 className="text-lg font-bold text-gray-900 mt-3">
+            Facility Setup Reserved for Managers
+          </h2>
+          <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+            Only Plant Managers have administrative permissions to register new industrial facilities and initialize new assessment intakes.
+          </p>
+          <button
+            onClick={() => navigate(`/assessment/${asmId}/overview`)}
+            className="btn-primary w-full py-2.5 text-xs font-semibold mt-6 flex items-center justify-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Return to Overview Dashboard</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto py-6">
@@ -181,6 +214,27 @@ export default function FacilitySetup() {
                 Enables specific carbon intensity per unit output.
               </p>
             </div>
+          </div>
+
+          {/* Assessment Security Passcode (Created by Manager) */}
+          <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-100 space-y-2">
+            <label className="block text-xs font-semibold text-gray-900">
+              Assessment Intake Security Passcode <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-[#5546E8] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                required
+                value={assessmentPassword}
+                onChange={(e) => setAssessmentPassword(e.target.value)}
+                placeholder="manager123"
+                className="input-field pl-9 text-xs font-mono bg-white"
+              />
+            </div>
+            <p className="text-[11px] text-gray-500">
+              Passcode created by manager for this assessment. Employees can enter this passcode or their employee account password to directly access and modify company intake records.
+            </p>
           </div>
 
           {/* Form Actions */}

@@ -14,10 +14,11 @@ export function FacilityAssessmentProvider({ children }) {
     return saved
       ? JSON.parse(saved)
       : {
-          id: 'usr-001',
-          name: 'Priya Sharma (Plant Operations)',
-          email: 'priya.sharma@abcplastics.in',
-          role: 'operator',
+          id: 'usr-mgr-01',
+          name: 'Rajesh Mehta (Plant Manager)',
+          email: 'manager@plant.com',
+          role: 'manager',
+          password: 'manager123',
         };
   });
   const [loading, setLoading] = useState(true);
@@ -46,13 +47,29 @@ export function FacilityAssessmentProvider({ children }) {
         setFacilities(facs);
 
         if (facs.length > 0) {
-          const defaultFac = facs[0];
-          setActiveFacility(defaultFac);
+          const savedFacId = localStorage.getItem('carbotrack_active_facility_id');
+          const currentFac = facs.find((f) => f.id === savedFacId) || facs[0];
+          setActiveFacility(currentFac);
 
-          // Find or create assessment
-          const assessmentsRes = await apiClient.getAssessment('asm-abc-001');
-          if (assessmentsRes?.data?.assessment) {
-            setActiveAssessment(assessmentsRes.data.assessment);
+          const savedAsmId = localStorage.getItem('carbotrack_active_assessment_id');
+          const asmList = JSON.parse(localStorage.getItem('carbotrack_assessments') || '[]');
+          
+          let currentAsm = null;
+          if (savedAsmId) {
+            currentAsm = asmList.find((a) => a.id === savedAsmId && a.facility_id === currentFac.id);
+          }
+          if (!currentAsm) {
+            currentAsm = asmList.find((a) => a.facility_id === currentFac.id && a.status === 'complete') ||
+              asmList.find((a) => a.facility_id === currentFac.id);
+          }
+
+          if (currentAsm) {
+            setActiveAssessment(currentAsm);
+          } else {
+            const assessmentsRes = await apiClient.getAssessment(savedAsmId || 'asm-abc-001');
+            if (assessmentsRes?.data?.assessment) {
+              setActiveAssessment(assessmentsRes.data.assessment);
+            }
           }
         }
       } catch (err) {
@@ -65,11 +82,58 @@ export function FacilityAssessmentProvider({ children }) {
   }, []);
 
   const selectFacility = (facility) => {
+    if (!facility) return;
     setActiveFacility(facility);
+    try {
+      localStorage.setItem('carbotrack_active_facility_id', facility.id);
+    } catch (e) {}
+
     // When switching facility, load its active assessment
     const asmList = JSON.parse(localStorage.getItem('carbotrack_assessments') || '[]');
-    const facilityAsm = asmList.find((a) => a.facility_id === facility.id) || null;
+    let facilityAsm = asmList.find((a) => a.facility_id === facility.id && a.status === 'complete') ||
+      asmList.find((a) => a.facility_id === facility.id);
+
+    if (!facilityAsm) {
+      // Create baseline assessment if none exists
+      facilityAsm = {
+        id: `asm-${Date.now()}`,
+        facility_id: facility.id,
+        status: 'complete',
+        total_co2e: 75.0,
+      };
+    }
+
     setActiveAssessment(facilityAsm);
+    try {
+      localStorage.setItem('carbotrack_active_assessment_id', facilityAsm.id);
+    } catch (e) {}
+  };
+
+  const handleSetActiveAssessment = (asm) => {
+    setActiveAssessment(asm);
+    if (asm?.id) {
+      try {
+        localStorage.setItem('carbotrack_active_assessment_id', asm.id);
+      } catch (e) {}
+    }
+  };
+
+  const addFacility = (newFacility, newAssessment = null) => {
+    setFacilities((prev) => {
+      const exists = prev.some((f) => f.id === newFacility.id);
+      return exists ? prev.map((f) => f.id === newFacility.id ? newFacility : f) : [...prev, newFacility];
+    });
+    setActiveFacility(newFacility);
+    try {
+      localStorage.setItem('carbotrack_active_facility_id', newFacility.id);
+    } catch (e) {}
+
+    if (newAssessment) {
+      setActiveAssessment(newAssessment);
+      try {
+        localStorage.setItem('carbotrack_active_assessment_id', newAssessment.id);
+      } catch (e) {}
+    }
   };
 
   const refreshAssessment = async (assessmentId) => {
@@ -77,7 +141,7 @@ export function FacilityAssessmentProvider({ children }) {
     try {
       const res = await assessmentsApi.getById(assessmentId);
       if (res?.data?.assessment) {
-        setActiveAssessment(res.data.assessment);
+        handleSetActiveAssessment(res.data.assessment);
       }
     } catch (e) {
       console.error('Failed to refresh assessment', e);
@@ -109,7 +173,8 @@ export function FacilityAssessmentProvider({ children }) {
         toasts,
         setFacilities,
         setActiveFacility: selectFacility,
-        setActiveAssessment,
+        setActiveAssessment: handleSetActiveAssessment,
+        addFacility,
         refreshAssessment,
         addToast,
         removeToast,

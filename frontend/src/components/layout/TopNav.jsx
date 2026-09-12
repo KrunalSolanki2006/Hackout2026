@@ -82,6 +82,13 @@ export default function TopNav({ onToggleMobileMenu }) {
                   onClick={() => {
                     setActiveFacility(fac);
                     setFacDropdownOpen(false);
+                    const asmList = JSON.parse(localStorage.getItem('carbotrack_assessments') || '[]');
+                    const targetAsm = asmList.find((a) => a.facility_id === fac.id);
+                    if (targetAsm) {
+                      navigate(`/assessment/${targetAsm.id}/overview`);
+                    } else {
+                      navigate(`/facility/${fac.id}/intake`);
+                    }
                   }}
                   className={`w-full text-left px-2.5 py-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
                     activeFacility?.id === fac.id
@@ -158,8 +165,18 @@ export default function TopNav({ onToggleMobileMenu }) {
           <span className="w-2 h-2 rounded-full bg-[#5546E8] absolute top-1.5 right-1.5 ring-2 ring-white" />
         </button>
 
-        {/* User Profile Avatar */}
-        <div className="relative">
+        {/* User Profile with Role Badge */}
+        <div className="relative flex items-center gap-2">
+          <span
+            className={`hidden md:inline-flex text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+              user?.role === 'manager'
+                ? 'bg-purple-50 text-[#5546E8] border border-purple-200'
+                : 'bg-sky-50 text-sky-700 border border-sky-200'
+            }`}
+          >
+            {user?.role === 'manager' ? 'Plant Manager' : 'Plant Employee'}
+          </span>
+
           <button
             onClick={() => setUserDropdownOpen(!userDropdownOpen)}
             className="rounded-full hover:ring-2 hover:ring-[#5546E8]/20 transition-all focus:outline-none"
@@ -172,10 +189,21 @@ export default function TopNav({ onToggleMobileMenu }) {
           </button>
 
           {userDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-dropdown p-1.5 z-40 border border-gray-200">
+            <div className="absolute right-0 mt-2 top-full w-56 bg-white rounded-xl shadow-dropdown p-1.5 z-40 border border-gray-200">
               <div className="px-3 py-2 border-b border-gray-100 text-xs">
                 <p className="font-semibold text-gray-900 truncate">{user?.name}</p>
                 <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
+                <div className="mt-1.5">
+                  <span
+                    className={`inline-block text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${
+                      user?.role === 'manager'
+                        ? 'bg-purple-100 text-[#5546E8]'
+                        : 'bg-sky-100 text-sky-800'
+                    }`}
+                  >
+                    {user?.role === 'manager' ? 'Manager (Full Rights)' : 'Employee (Direct Passcode Access)'}
+                  </span>
+                </div>
               </div>
 
               <div className="py-1">

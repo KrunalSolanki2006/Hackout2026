@@ -10,5 +10,10 @@ export const assessmentsApi = {
   getSummary: (assessmentId) => apiClient.getSummary(assessmentId),
   getLeakPoints: (assessmentId) => apiClient.getLeakPoints(assessmentId),
   getHistory: (facilityId) => apiClient.getHistory(facilityId),
+  addHistoryRecord: (record) => apiClient.addHistoryRecord(record),
+  saveInputs: (assessmentId, inputs) => apiClient.saveInputs(assessmentId, inputs),
   exportReport: (assessmentId, format) => apiClient.exportReport(assessmentId, format),
+  setPassword: (assessmentId, password) => apiClient.setAssessmentPassword(assessmentId, password),
+  getPassword: (assessmentId) => apiClient.getAssessmentPassword(assessmentId),
+  verifyPassword: (assessmentId, password, currentUser) => apiClient.verifyAssessmentAccess(assessmentId, password, currentUser),
 };

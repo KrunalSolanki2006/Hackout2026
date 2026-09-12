@@ -4,7 +4,7 @@ import {
   INITIAL_DEMO_FACILITY,
   INITIAL_DEMO_INPUTS,
   INITIAL_ASSESSMENT_HISTORY
-} from './mockData';
+} from './mockData.js';
 
 const STORAGE_KEYS = {
   FACILITIES: 'carbotrack_facilities',
@@ -14,32 +14,42 @@ const STORAGE_KEYS = {
   DISMISSED: 'carbotrack_dismissed',
   ROADMAP: 'carbotrack_roadmap',
   HISTORY: 'carbotrack_history',
+  USERS: 'carbotrack_users',
+  PASSWORDS: 'carbotrack_assessment_passwords',
 };
 
-// Safe localStorage helper
+// Safe storage helper with in-memory fallback
+const memoryStore = {};
+
 function getStorage(key, fallback) {
   try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
+    if (typeof localStorage !== 'undefined') {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : (memoryStore[key] || fallback);
+    }
+    return memoryStore[key] || fallback;
   } catch (e) {
-    return fallback;
+    return memoryStore[key] || fallback;
   }
 }
 
 function setStorage(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    memoryStore[key] = value;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
   } catch (e) {
-    console.error('Storage error', e);
+    memoryStore[key] = value;
   }
 }
 
 // Initialize seed data if empty
 export function initMockStore() {
-  if (!localStorage.getItem(STORAGE_KEYS.FACILITIES)) {
+  if (!getStorage(STORAGE_KEYS.FACILITIES, null)) {
     setStorage(STORAGE_KEYS.FACILITIES, [INITIAL_DEMO_FACILITY]);
   }
-  if (!localStorage.getItem(STORAGE_KEYS.ASSESSMENTS)) {
+  if (!getStorage(STORAGE_KEYS.ASSESSMENTS, null)) {
     setStorage(STORAGE_KEYS.ASSESSMENTS, [
       {
         id: 'asm-abc-001',
@@ -51,13 +61,13 @@ export function initMockStore() {
       }
     ]);
   }
-  if (!localStorage.getItem(STORAGE_KEYS.INPUTS)) {
+  if (!getStorage(STORAGE_KEYS.INPUTS, null)) {
     setStorage(STORAGE_KEYS.INPUTS, INITIAL_DEMO_INPUTS);
   }
-  if (!localStorage.getItem(STORAGE_KEYS.HISTORY)) {
+  if (!getStorage(STORAGE_KEYS.HISTORY, null)) {
     setStorage(STORAGE_KEYS.HISTORY, INITIAL_ASSESSMENT_HISTORY);
   }
-  if (!localStorage.getItem(STORAGE_KEYS.APPLIED)) {
+  if (!getStorage(STORAGE_KEYS.APPLIED, null)) {
     setStorage(STORAGE_KEYS.APPLIED, [
       {
         id: 'app-001',
@@ -69,8 +79,31 @@ export function initMockStore() {
       }
     ]);
   }
-  if (!localStorage.getItem(STORAGE_KEYS.DISMISSED)) {
+  if (!getStorage(STORAGE_KEYS.DISMISSED, null)) {
     setStorage(STORAGE_KEYS.DISMISSED, []);
+  }
+  if (!getStorage(STORAGE_KEYS.USERS, null)) {
+    setStorage(STORAGE_KEYS.USERS, [
+      {
+        id: 'usr-mgr-01',
+        name: 'Rajesh Mehta (Plant Manager)',
+        email: 'manager@plant.com',
+        password: 'manager123',
+        role: 'manager',
+      },
+      {
+        id: 'usr-emp-01',
+        name: 'Ananya Roy (Process Employee)',
+        email: 'employee@plant.com',
+        password: 'employee123',
+        role: 'employee',
+      },
+    ]);
+  }
+  if (!getStorage(STORAGE_KEYS.PASSWORDS, null)) {
+    setStorage(STORAGE_KEYS.PASSWORDS, {
+      'asm-abc-001': 'manager123',
+    });
   }
 }
 
@@ -388,21 +421,215 @@ export function getRoadmapEngine(assessmentId) {
   };
 }
 
+// Generate industry-tailored operational activity inputs
+export function generateIndustryBaselineInputs(assessmentId, industry = 'plastic', productionVolume = 50000) {
+  const vol = Number(productionVolume) > 0 ? Number(productionVolume) : 50000;
+  const timestamp = Date.now();
+
+  if (industry === 'textile') {
+    return [
+      {
+        id: `inp-${timestamp}-1`,
+        assessment_id: assessmentId,
+        category: 'energy',
+        subtype: 'electricity',
+        quantity: Math.round(vol * 0.9),
+        unit: 'kwh',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-2`,
+        assessment_id: assessmentId,
+        category: 'energy',
+        subtype: 'diesel',
+        quantity: Math.round(vol * 0.08),
+        unit: 'l',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-3`,
+        assessment_id: assessmentId,
+        category: 'material',
+        subtype: 'virgin_textile_fiber',
+        quantity: Math.round(vol * 0.35),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-4`,
+        assessment_id: assessmentId,
+        category: 'material',
+        subtype: 'dye',
+        quantity: Math.round(vol * 0.04),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-5`,
+        assessment_id: assessmentId,
+        category: 'waste',
+        subtype: 'textile_waste',
+        treatment: 'landfill',
+        quantity: Math.round(vol * 0.06),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+    ];
+  } else if (industry === 'food_processing') {
+    return [
+      {
+        id: `inp-${timestamp}-1`,
+        assessment_id: assessmentId,
+        category: 'energy',
+        subtype: 'electricity',
+        quantity: Math.round(vol * 1.1),
+        unit: 'kwh',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-2`,
+        assessment_id: assessmentId,
+        category: 'energy',
+        subtype: 'natural_gas',
+        quantity: Math.round(vol * 0.07),
+        unit: 'm3',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-3`,
+        assessment_id: assessmentId,
+        category: 'material',
+        subtype: 'raw_food_material',
+        quantity: Math.round(vol * 0.5),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-4`,
+        assessment_id: assessmentId,
+        category: 'material',
+        subtype: 'packaging_material',
+        quantity: Math.round(vol * 0.06),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-5`,
+        assessment_id: assessmentId,
+        category: 'waste',
+        subtype: 'organic_waste',
+        treatment: 'landfill',
+        quantity: Math.round(vol * 0.08),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+    ];
+  } else {
+    // Plastic (default)
+    return [
+      {
+        id: `inp-${timestamp}-1`,
+        assessment_id: assessmentId,
+        category: 'energy',
+        subtype: 'diesel',
+        quantity: Math.round(vol * 0.1),
+        unit: 'l',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-2`,
+        assessment_id: assessmentId,
+        category: 'energy',
+        subtype: 'electricity',
+        quantity: Math.round(vol * 0.8),
+        unit: 'kwh',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-3`,
+        assessment_id: assessmentId,
+        category: 'material',
+        subtype: 'virgin_plastic',
+        quantity: Math.round(vol * 0.4),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+      {
+        id: `inp-${timestamp}-4`,
+        assessment_id: assessmentId,
+        category: 'waste',
+        subtype: 'plastic_waste',
+        treatment: 'landfill',
+        quantity: Math.round(vol * 0.06),
+        unit: 'kg',
+        computed_co2e: null,
+      },
+    ];
+  }
+}
+
 // Mock Store helpers for mutations
 export const mockStore = {
   getFacilities: () => getStorage(STORAGE_KEYS.FACILITIES, [INITIAL_DEMO_FACILITY]),
-  
+
   createFacility: (data) => {
     const facilities = getStorage(STORAGE_KEYS.FACILITIES, [INITIAL_DEMO_FACILITY]);
+    const facilityId = `fac-${Date.now()}`;
     const newFacility = {
-      id: `fac-${Date.now()}`,
+      id: facilityId,
       owner_user_id: 'usr-001',
       created_at: new Date().toISOString(),
-      ...data
+      ...data,
     };
     facilities.push(newFacility);
     setStorage(STORAGE_KEYS.FACILITIES, facilities);
-    return newFacility;
+
+    // Automatically create initial baseline assessment with realistic baseline inputs
+    const assessmentId = `asm-${Date.now()}`;
+    const baselineInputs = generateIndustryBaselineInputs(
+      assessmentId,
+      newFacility.industry,
+      newFacility.production_volume
+    );
+
+    // Save inputs associated with this assessment
+    const existingInputs = getStorage(STORAGE_KEYS.INPUTS, INITIAL_DEMO_INPUTS);
+    setStorage(STORAGE_KEYS.INPUTS, [...existingInputs, ...baselineInputs]);
+
+    // Calculate baseline assessment
+    const result = calculateAssessmentEngine(baselineInputs);
+
+    const assessments = getStorage(STORAGE_KEYS.ASSESSMENTS, []);
+    const newAssessment = {
+      id: assessmentId,
+      facility_id: facilityId,
+      status: 'complete',
+      total_co2e: result.total_co2e,
+      created_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    };
+    assessments.push(newAssessment);
+    setStorage(STORAGE_KEYS.ASSESSMENTS, assessments);
+
+    // Add baseline history entry for longitudinal tracking
+    const history = getStorage(STORAGE_KEYS.HISTORY, INITIAL_ASSESSMENT_HISTORY);
+    history.push({
+      assessment_id: assessmentId,
+      facility_id: facilityId,
+      total_co2e: result.total_co2e,
+      recorded_at: new Date().toISOString(),
+      status: 'complete',
+      interventions_applied: 0,
+    });
+    setStorage(STORAGE_KEYS.HISTORY, history);
+
+    // Persist active IDs
+    try {
+      localStorage.setItem('carbotrack_active_facility_id', facilityId);
+      localStorage.setItem('carbotrack_active_assessment_id', assessmentId);
+    } catch (e) {}
+
+    return { facility: newFacility, assessment: newAssessment };
   },
 
   getAssessments: (facilityId) => {
@@ -411,14 +638,27 @@ export const mockStore = {
   },
 
   createAssessment: (facilityId) => {
+    const facilities = getStorage(STORAGE_KEYS.FACILITIES, [INITIAL_DEMO_FACILITY]);
+    const fac = facilities.find((f) => f.id === facilityId) || facilities[0];
+    const assessmentId = `asm-${Date.now()}`;
+    const baselineInputs = generateIndustryBaselineInputs(
+      assessmentId,
+      fac?.industry || 'plastic',
+      fac?.production_volume || 50000
+    );
+    const result = calculateAssessmentEngine(baselineInputs);
+
+    const existingInputs = getStorage(STORAGE_KEYS.INPUTS, INITIAL_DEMO_INPUTS);
+    setStorage(STORAGE_KEYS.INPUTS, [...existingInputs, ...baselineInputs]);
+
     const list = getStorage(STORAGE_KEYS.ASSESSMENTS, []);
     const newAsm = {
-      id: `asm-${Date.now()}`,
+      id: assessmentId,
       facility_id: facilityId,
-      status: 'draft',
-      total_co2e: null,
+      status: 'complete',
+      total_co2e: result.total_co2e,
       created_at: new Date().toISOString(),
-      completed_at: null,
+      completed_at: new Date().toISOString(),
     };
     list.push(newAsm);
     setStorage(STORAGE_KEYS.ASSESSMENTS, list);
@@ -427,7 +667,35 @@ export const mockStore = {
 
   getInputs: (assessmentId) => {
     const inputs = getStorage(STORAGE_KEYS.INPUTS, INITIAL_DEMO_INPUTS);
-    return inputs.filter((i) => i.assessment_id === assessmentId);
+    const matching = inputs.filter((i) => i.assessment_id === assessmentId);
+    if (matching.length > 0) return matching;
+
+    // Fallback: If no inputs exist for this assessment, generate baseline for its facility
+    const assessments = getStorage(STORAGE_KEYS.ASSESSMENTS, []);
+    const asm = assessments.find((a) => a.id === assessmentId);
+    if (asm) {
+      const facilities = getStorage(STORAGE_KEYS.FACILITIES, [INITIAL_DEMO_FACILITY]);
+      const fac = facilities.find((f) => f.id === asm.facility_id);
+      const generated = generateIndustryBaselineInputs(assessmentId, fac?.industry, fac?.production_volume);
+      setStorage(STORAGE_KEYS.INPUTS, [...inputs, ...generated]);
+      return generated;
+    }
+    return [];
+  },
+
+  saveAssessmentInputs: (assessmentId, inputs) => {
+    const existingInputs = getStorage(STORAGE_KEYS.INPUTS, INITIAL_DEMO_INPUTS);
+    // Remove previous inputs for this assessment
+    const filtered = existingInputs.filter((i) => i.assessment_id !== assessmentId);
+    // Ensure every input has the proper assessment_id and valid quantity
+    const sanitizedInputs = inputs.map((inp, idx) => ({
+      ...inp,
+      id: inp.id && !inp.id.startsWith('inp-temp-') ? inp.id : `inp-${Date.now()}-${idx}`,
+      assessment_id: assessmentId,
+      quantity: Number(inp.quantity) || 0,
+    }));
+    setStorage(STORAGE_KEYS.INPUTS, [...filtered, ...sanitizedInputs]);
+    return sanitizedInputs;
   },
 
   addInput: (assessmentId, inputData) => {
@@ -509,6 +777,167 @@ export const mockStore = {
   },
 
   getHistory: (facilityId) => {
-    return getStorage(STORAGE_KEYS.HISTORY, INITIAL_ASSESSMENT_HISTORY);
+    const historyList = getStorage(STORAGE_KEYS.HISTORY, INITIAL_ASSESSMENT_HISTORY) || [];
+    const assessments = getStorage(STORAGE_KEYS.ASSESSMENTS, []) || [];
+
+    const map = new Map();
+
+    // 1. Add historical audit records for this facility
+    historyList.forEach((h) => {
+      if (!facilityId || h.facility_id === facilityId) {
+        map.set(h.assessment_id, {
+          ...h,
+          total_co2e: Number(h.total_co2e) || 0,
+        });
+      }
+    });
+
+    // 2. Add / merge all assessments for this facility from the assessments store
+    assessments.forEach((a) => {
+      if (!facilityId || a.facility_id === facilityId) {
+        const existing = map.get(a.id) || {};
+        map.set(a.id, {
+          assessment_id: a.id,
+          facility_id: a.facility_id,
+          total_co2e: Number(a.total_co2e) || existing.total_co2e || 0,
+          recorded_at: a.completed_at || a.created_at || new Date().toISOString(),
+          status: a.status || 'complete',
+          interventions_applied: a.interventions_applied || existing.interventions_applied || 0,
+        });
+      }
+    });
+
+    const combined = Array.from(map.values());
+
+    // If still empty (e.g. brand new facility), provide initial baseline point
+    if (combined.length === 0) {
+      return [
+        {
+          assessment_id: `asm-${facilityId || 'demo'}-baseline`,
+          facility_id: facilityId || 'fac-abc-001',
+          total_co2e: 120.0,
+          recorded_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+          status: 'complete',
+          interventions_applied: 0,
+        },
+      ];
+    }
+
+    return combined.sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
+  },
+
+  addHistoryRecord: (record) => {
+    const list = getStorage(STORAGE_KEYS.HISTORY, INITIAL_ASSESSMENT_HISTORY);
+    const newRecord = {
+      assessment_id: record.assessment_id || `asm-${Date.now()}`,
+      facility_id: record.facility_id || 'fac-abc-001',
+      total_co2e: Number(record.total_co2e) || 75.0,
+      recorded_at: record.recorded_at || new Date().toISOString(),
+      status: 'complete',
+      interventions_applied: record.interventions_applied || 0,
+    };
+    list.push(newRecord);
+    setStorage(STORAGE_KEYS.HISTORY, list);
+    return newRecord;
+  },
+
+  // User Authentication & Management (Manager and Employee)
+  getUsers: () => {
+    return getStorage(STORAGE_KEYS.USERS, []);
+  },
+
+  signupUser: (data) => {
+    const users = getStorage(STORAGE_KEYS.USERS, []);
+    const existing = users.find((u) => u.email.toLowerCase() === (data.email || '').toLowerCase().trim());
+    if (existing) {
+      throw new Error(`An account with email ${data.email} already exists.`);
+    }
+
+    const assignedRole = data.role === 'manager' ? 'manager' : 'employee';
+    const newUser = {
+      id: `usr-${Date.now()}`,
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
+      password: data.password,
+      role: assignedRole,
+    };
+
+    users.push(newUser);
+    setStorage(STORAGE_KEYS.USERS, users);
+
+    return {
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+      },
+      token: `mock-jwt-token-${newUser.id}`,
+    };
+  },
+
+  loginUser: (email, password) => {
+    const users = getStorage(STORAGE_KEYS.USERS, []);
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    const user = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+
+    if (!user) {
+      throw new Error('Account not found with this email. Please check your credentials or register.');
+    }
+
+    if (user.password !== password) {
+      throw new Error('Invalid password. Please check your credentials.');
+    }
+
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      token: `mock-jwt-token-${user.id}`,
+    };
+  },
+
+  // Assessment Password Management (Manager sets, Employee verifies)
+  setAssessmentPassword: (assessmentId, password) => {
+    const passwords = getStorage(STORAGE_KEYS.PASSWORDS, {});
+    passwords[assessmentId] = password;
+    setStorage(STORAGE_KEYS.PASSWORDS, passwords);
+    return true;
+  },
+
+  getAssessmentPassword: (assessmentId) => {
+    const passwords = getStorage(STORAGE_KEYS.PASSWORDS, {});
+    return passwords[assessmentId] || 'manager123';
+  },
+
+  verifyAssessmentAccess: (assessmentId, enteredPassword, currentUser) => {
+    if (!currentUser) return false;
+    // Managers always have full access
+    if (currentUser.role === 'manager') return true;
+
+    const trimmedInput = (enteredPassword || '').trim();
+    if (!trimmedInput) return false;
+
+    // Check manager's assessment password
+    const passwords = getStorage(STORAGE_KEYS.PASSWORDS, {});
+    const assessmentPassword = passwords[assessmentId] || 'manager123';
+    if (trimmedInput === assessmentPassword) return true;
+
+    // Also directly allows employee password to modify company assessment
+    const users = getStorage(STORAGE_KEYS.USERS, []);
+    const foundUser = users.find((u) => u.email.toLowerCase() === currentUser.email?.toLowerCase());
+    if (foundUser && foundUser.password === trimmedInput) {
+      return true;
+    }
+
+    // Fallback for default demo employee password
+    if (currentUser.role === 'employee' && trimmedInput === 'employee123') {
+      return true;
+    }
+
+    return false;
   }
 };

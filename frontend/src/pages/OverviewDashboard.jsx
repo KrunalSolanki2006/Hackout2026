@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   PieChart,
@@ -16,11 +16,15 @@ import {
   AlertOctagon,
   Lightbulb,
   ShieldCheck,
+  FileSpreadsheet,
+  FileUp,
+  UploadCloud,
 } from 'lucide-react';
 import KpiCard from '../components/KpiCard';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import ErrorBanner from '../components/ErrorBanner';
+import CsvActivityModal from '../components/CsvActivityModal';
 import { useAssessmentSummary } from '../hooks/useAssessmentSummary';
 import { useLeakPoints } from '../hooks/useLeakPoints';
 import { useFacilityAssessment } from '../context/FacilityAssessmentContext';
@@ -35,6 +39,7 @@ export default function OverviewDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { activeAssessment, activeFacility } = useFacilityAssessment();
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
 
   const assessmentId = id || activeAssessment?.id || 'asm-abc-001';
   const { data: summary, loading: summaryLoading, error: summaryError, refetch } =
@@ -67,12 +72,33 @@ export default function OverviewDashboard() {
 
   if (!summary || !summary.total_co2e) {
     return (
-      <EmptyState
-        title="No Completed Assessment Found"
-        description="Run your first guided activity intake calculation to generate the executive carbon intelligence summary."
-        actionLabel="Start Guided Intake"
-        onAction={() => navigate(`/facility/${activeFacility?.id || 'fac-abc-001'}/intake`)}
-      />
+      <div className="space-y-6">
+        <EmptyState
+          title="No Completed Assessment Found"
+          description="Run your first guided activity intake calculation or import an existing facility CSV to generate the executive carbon intelligence summary."
+          actionLabel="Start Guided Intake"
+          onAction={() => navigate(`/facility/${activeFacility?.id || 'fac-abc-001'}/intake`)}
+        />
+        <div className="text-center -mt-2">
+          <span className="text-xs text-gray-400">or</span>
+          <div className="mt-2">
+            <button
+              onClick={() => setCsvModalOpen(true)}
+              className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5 shadow-xs"
+            >
+              <FileUp className="w-3.5 h-3.5 text-[#5546E8]" />
+              <span>Import Facility Activity CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <CsvActivityModal
+          isOpen={csvModalOpen}
+          onClose={() => setCsvModalOpen(false)}
+          assessmentId={assessmentId}
+          onImportSuccess={() => refetch()}
+        />
+      </div>
     );
   }
 
@@ -122,6 +148,20 @@ export default function OverviewDashboard() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setCsvModalOpen(true)}
+            className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 text-[#5546E8] bg-indigo-50/70 border-indigo-200 hover:bg-indigo-100/70 shadow-2xs font-semibold"
+          >
+            <FileUp className="w-3.5 h-3.5 text-[#5546E8]" />
+            <span>Import Activity CSV</span>
+          </button>
+          <Link
+            to={`/facility/${activeFacility?.id || 'fac-abc-001'}/intake`}
+            className="btn-secondary text-xs py-2 px-3"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Edit Activity Inputs</span>
+          </Link>
           <Link
             to={`/assessment/${assessmentId}/leak-points`}
             className="btn-secondary text-xs py-2 px-3"
@@ -338,6 +378,14 @@ export default function OverviewDashboard() {
           </div>
         </div>
       )}
+
+      {/* CSV Batch Activity Upload & Mapping Modal */}
+      <CsvActivityModal
+        isOpen={csvModalOpen}
+        onClose={() => setCsvModalOpen(false)}
+        assessmentId={assessmentId}
+        onImportSuccess={() => refetch()}
+      />
     </div>
   );
 }

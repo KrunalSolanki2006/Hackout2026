@@ -12,14 +12,18 @@ import {
   Activity,
   X,
   Layers,
+  Lock,
+  ShieldCheck,
+  User,
 } from 'lucide-react';
 import { useFacilityAssessment } from '../../context/FacilityAssessmentContext';
 
 export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
-  const { activeFacility, activeAssessment } = useFacilityAssessment();
+  const { activeFacility, activeAssessment, user } = useFacilityAssessment();
 
   const facilityId = activeFacility?.id || 'fac-abc-001';
   const assessmentId = activeAssessment?.id || 'asm-abc-001';
+  const isManager = user?.role === 'manager';
 
   const navGroups = [
     {
@@ -105,10 +109,29 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
         <NavLink
           to={`/facility/${facilityId}/intake`}
           onClick={onCloseMobile}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-[#5546E8] hover:bg-[#4335D6] text-white text-xs font-semibold shadow-sm transition-all duration-150"
+          className={`w-full flex items-center justify-between py-2.5 px-3 rounded-lg text-white text-xs font-semibold shadow-sm transition-all duration-150 ${
+            isManager
+              ? 'bg-[#5546E8] hover:bg-[#4335D6]'
+              : 'bg-[#1E2548] hover:bg-[#252E58] border border-[#2D3766]'
+          }`}
         >
-          <PlusCircle className="w-4 h-4" />
-          <span>New Assessment Intake</span>
+          <div className="flex items-center gap-2">
+            {isManager ? (
+              <PlusCircle className="w-4 h-4 text-white" />
+            ) : (
+              <Lock className="w-4 h-4 text-amber-400" />
+            )}
+            <span>{isManager ? 'New Assessment Intake' : 'Assessment Intake'}</span>
+          </div>
+          <span
+            className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-bold tracking-wider ${
+              isManager
+                ? 'bg-white/20 text-white'
+                : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+            }`}
+          >
+            {isManager ? 'Manager' : 'Protected'}
+          </span>
         </NavLink>
       </div>
 
@@ -143,8 +166,31 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
         ))}
       </nav>
 
-      {/* Footer System Status */}
-      <div className="p-4 border-t border-[#1E2548]/70 bg-[#060818] text-[11px] text-[#8A92A6] space-y-1">
+      {/* Current Authenticated User & System Status */}
+      <div className="p-4 border-t border-[#1E2548]/70 bg-[#060818] text-[11px] text-[#8A92A6] space-y-2.5">
+        <div className="flex items-center justify-between pb-2 border-b border-[#1E2548]/40">
+          <div className="flex items-center gap-2 truncate">
+            <div className="w-6 h-6 rounded-full bg-[#5546E8]/20 border border-[#5546E8]/40 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+              {user?.name?.charAt(0) || 'U'}
+            </div>
+            <div className="truncate">
+              <p className="text-white text-xs font-semibold leading-tight truncate">
+                {user?.name || 'User'}
+              </p>
+              <p className="text-[10px] text-[#8A92A6] truncate">{user?.email}</p>
+            </div>
+          </div>
+          <span
+            className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-bold tracking-wider shrink-0 ${
+              isManager
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+            }`}
+          >
+            {isManager ? 'Manager' : 'Employee'}
+          </span>
+        </div>
+
         <div className="flex items-center justify-between">
           <span>Engine Status</span>
           <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
@@ -152,7 +198,6 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
             Deterministic v1.2
           </span>
         </div>
-        <p className="text-[10px] text-slate-400">ML Ranker & Rule-based Active</p>
       </div>
     </div>
   );
