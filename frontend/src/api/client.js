@@ -12,7 +12,7 @@ import {
 initMockStore();
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-const ALWAYS_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || true; // Default true for flawless hackathon demo
+const ALWAYS_MOCK = import.meta.env.VITE_USE_MOCK === 'true'; // Controlled by VITE_USE_MOCK env var
 
 export class ApiError extends Error {
   constructor(message, code = 'INTERNAL_ERROR', field = null, status = 500) {
@@ -50,8 +50,8 @@ async function request(endpoint, options = {}) {
     }
     return json;
   } catch (err) {
-    // If live server fails or is unreachable, fallback to mock engine
-    console.warn(`[API] Live call to ${endpoint} failed or unreachable. Falling back to local engine.`, err);
+    if (err instanceof ApiError) throw err; // Re-throw real API errors (auth failures, validation)
+    console.warn(`[API] Live call to ${endpoint} unreachable. Falling back to local engine.`, err.message);
     throw err;
   }
 }
@@ -443,8 +443,27 @@ export const apiClient = {
   async exportReport(assessmentId, format = 'pdf') {
     if (!ALWAYS_MOCK) {
       try {
-        return await request(`/assessments/${assessmentId}/export?format=${format}`);
-      } catch (e) { /* fallback */ }
+        const token = localStorage.getItem('carbotrack_token') || 'demo-jwt-token';
+        const url = `${API_BASE_URL}/assessments/${assessmentId}/export?format=${format}`;
+        const res = await fetch(url, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!res.ok) throw new Error(`Export failed with status ${res.status}`);
+        const blob = await res.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `assessment_${assessmentId}_export.${format === 'csv' ? 'csv' : 'txt'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+        return { success: true };
+      } catch (e) {
+        console.warn('[API] Live export failed, falling back:', e);
+      }
     }
     await new Promise((r) => setTimeout(r, 600));
     return {
