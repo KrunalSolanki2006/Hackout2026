@@ -1,0 +1,13 @@
+{
+  "name": "hachout-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Industrial Emission Leak-Point Detector & Circular Alternative Recommender",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "start": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "postinstall": "npm --prefix frontend install"
+  }
+}
