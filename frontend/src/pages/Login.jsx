@@ -6,12 +6,8 @@ import {
   ArrowRight,
   Sparkles,
   Lock,
-  Mail,
-  User,
   Eye,
   EyeOff,
-  ShieldCheck,
-  CheckCircle2,
   UserPlus,
   KeyRound,
   X,
@@ -144,6 +140,10 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EEF2FF] via-[#F8FAFC] to-[#F1F5F9] flex flex-col justify-between relative overflow-x-hidden font-sans text-gray-800">
+      {/* Subtle Background Floating Ambient Glowing Orbs */}
+      <div className="absolute top-12 left-1/4 w-80 h-80 rounded-full bg-indigo-200/35 blur-3xl pointer-events-none animate-float-slow -z-0" />
+      <div className="absolute top-1/3 right-1/4 w-96 h-96 rounded-full bg-purple-200/30 blur-3xl pointer-events-none animate-pulse-subtle -z-0" />
+
       {/* ───────────────────────────────────────────────────────────── */}
       {/* 1. TOP NAVIGATION BAR                                         */}
       {/* ───────────────────────────────────────────────────────────── */}
@@ -174,10 +174,13 @@ export default function Login() {
       </header>
 
       {/* ───────────────────────────────────────────────────────────── */}
-      {/* 2. CENTERED AUTHENTICATION CARD                               */}
+      {/* 2. CENTERED AUTHENTICATION CARD WITH POP-UP ANIMATION         */}
       {/* ───────────────────────────────────────────────────────────── */}
       <main className="flex-1 flex items-center justify-center px-4 py-8 relative z-10">
-        <div className="w-full max-w-[430px]">
+        <div
+          key={isSignup ? 'signup-card' : 'login-card'}
+          className="w-full max-w-[430px] animate-form-popup"
+        >
           {/* Main Card */}
           <div className="bg-white rounded-3xl shadow-xl shadow-indigo-100/70 border border-gray-100 p-7 sm:p-9 relative pt-11 transition-all">
             {/* Top Elevated Icon Emblem */}
@@ -207,7 +210,7 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Full Name (Sign Up only) */}
               {isSignup && (
-                <div>
+                <div className="animate-in fade-in slide-in-from-top-2 duration-150">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Full Name
                   </label>
@@ -272,7 +275,7 @@ export default function Login() {
 
               {/* Role Selection (Sign Up only) */}
               {isSignup && (
-                <div>
+                <div className="animate-in fade-in slide-in-from-top-2 duration-150">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Facility Role
                   </label>
@@ -354,9 +357,9 @@ export default function Login() {
       </main>
 
       {/* ───────────────────────────────────────────────────────────── */}
-      {/* 3. FOOTER                                                     */}
+      {/* 3. CLEAN FOOTER                                               */}
       {/* ───────────────────────────────────────────────────────────── */}
-      <footer className="w-full py-4 text-center text-xs text-gray-400 relative z-20">
+      <footer className="w-full py-5 text-center text-xs text-gray-400 relative z-20 border-t border-gray-200/60 bg-white/30 backdrop-blur-xs">
         <p>© 2026 CarboTrack • Renewable Energy & Circular Carbon Ecosystem</p>
       </footer>
 
@@ -365,7 +368,7 @@ export default function Login() {
       {/* ───────────────────────────────────────────────────────────── */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 relative border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 relative border border-gray-100 animate-popup">
             <button
               onClick={() => setShowResetModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 rounded-lg"

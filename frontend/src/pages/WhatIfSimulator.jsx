@@ -107,12 +107,12 @@ export default function WhatIfSimulator() {
       {/* Enterprise Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider bg-indigo-50 text-[#5546E8] border border-indigo-100 font-mono flex items-center gap-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider bg-indigo-50 text-[#5546E8] border border-indigo-100 font-mono flex items-center gap-1 whitespace-nowrap">
               <Sliders className="w-3 h-3 text-[#5546E8]" />
               <span>Interactive Simulator</span>
             </span>
-            <span className="text-xs text-gray-400 font-mono">Assessment: {assessmentId}</span>
+            <span className="text-xs text-gray-400 font-mono whitespace-nowrap">Assessment: {assessmentId}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
             What-If Scenario Simulator & Carbon Delta
