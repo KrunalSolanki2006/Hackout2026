@@ -807,19 +807,57 @@ export const mockStore = {
       }
     });
 
-    const combined = Array.from(map.values());
+    let combined = Array.from(map.values());
 
-    // If still empty (e.g. brand new facility), provide initial baseline point
+    // If empty (e.g. brand new facility), provide initial baseline points
     if (combined.length === 0) {
+      const now = Date.now();
       return [
         {
           assessment_id: `asm-${facilityId || 'demo'}-baseline`,
           facility_id: facilityId || 'fac-abc-001',
-          total_co2e: 120.0,
-          recorded_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+          total_co2e: 145.2,
+          recorded_at: new Date(now - 180 * 86400000).toISOString(),
           status: 'complete',
           interventions_applied: 0,
         },
+        {
+          assessment_id: `asm-${facilityId || 'demo'}-q1`,
+          facility_id: facilityId || 'fac-abc-001',
+          total_co2e: 130.6,
+          recorded_at: new Date(now - 90 * 86400000).toISOString(),
+          status: 'complete',
+          interventions_applied: 1,
+        },
+      ];
+    }
+
+    // If only 1 assessment exists, add baseline audit history so trend line is complete and informative
+    if (combined.length === 1) {
+      const current = combined[0];
+      const val = Number(current.total_co2e) || 110.0;
+      const curDate = new Date(current.recorded_at || Date.now());
+      const bDate = new Date(curDate.getTime() - 180 * 86400000).toISOString();
+      const mDate = new Date(curDate.getTime() - 90 * 86400000).toISOString();
+
+      combined = [
+        {
+          assessment_id: `asm-${facilityId || 'demo'}-baseline`,
+          facility_id: facilityId || current.facility_id || 'fac-abc-001',
+          total_co2e: Math.round(val * 1.28 * 10) / 10,
+          recorded_at: bDate,
+          status: 'complete',
+          interventions_applied: 0,
+        },
+        {
+          assessment_id: `asm-${facilityId || 'demo'}-q1`,
+          facility_id: facilityId || current.facility_id || 'fac-abc-001',
+          total_co2e: Math.round(val * 1.13 * 10) / 10,
+          recorded_at: mDate,
+          status: 'complete',
+          interventions_applied: 1,
+        },
+        current,
       ];
     }
 

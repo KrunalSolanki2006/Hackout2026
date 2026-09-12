@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Filter,
+  BarChart3,
+  Layers,
 } from 'lucide-react';
 import RankedBarChart from '../components/RankedBarChart';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -97,11 +99,16 @@ export default function LeakPointDashboard() {
       {/* Full-Width Ranked Horizontal Bar Chart Card */}
       <div className="panel-card p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <div>
-            <h3 className="text-sm font-bold text-gray-900">Relative Contribution Breakdown (% of Total CO₂e)</h3>
-            <p className="text-xs text-gray-500">
-              Click any bar to drill down into targeted circular interventions.
-            </p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5546E8] shrink-0">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900">Relative Contribution Breakdown (% of Total CO₂e)</h3>
+              <p className="text-xs text-gray-500">
+                Click any bar to drill down into targeted circular interventions.
+              </p>
+            </div>
           </div>
           <span className="text-xs text-gray-400 font-mono">Thresholds: High ≥30% | Medium 10–30% | Low &lt;10%</span>
         </div>
@@ -115,9 +122,14 @@ export default function LeakPointDashboard() {
 
       {/* Filter and Cards Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-        <div>
-          <h3 className="text-sm font-bold text-gray-900">Ranked Leak-Point Profiles ({filteredLeakPoints.length})</h3>
-          <p className="text-xs text-gray-500">Drill down into operational root causes and intervention options.</p>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <Layers className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">Ranked Leak-Point Profiles ({filteredLeakPoints.length})</h3>
+            <p className="text-xs text-gray-500">Drill down into operational root causes and intervention options.</p>
+          </div>
         </div>
 
         {/* Filter Pills */}
@@ -156,7 +168,7 @@ export default function LeakPointDashboard() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-7 h-7 rounded-lg bg-gray-100 border border-gray-200 text-gray-800 font-mono font-bold flex items-center justify-center text-xs shadow-xs">
-                      #{lp.rank}
+                      {lp.rank}
                     </span>
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider ${

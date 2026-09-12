@@ -19,8 +19,14 @@ import {
   FileSpreadsheet,
   FileUp,
   UploadCloud,
+  PieChart as PieChartIcon,
+  Zap,
+  Box,
+  Recycle,
+  TrendingUp,
 } from 'lucide-react';
 import KpiCard from '../components/KpiCard';
+import AnimatedCounter from '../components/AnimatedCounter';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
 import ErrorBanner from '../components/ErrorBanner';
@@ -33,6 +39,17 @@ const CATEGORY_COLORS = {
   energy: '#F59E0B', // Amber
   material: '#5546E8', // Primary Indigo
   waste: '#10B981', // Emerald
+};
+
+const getContributorIcon = (category, name) => {
+  const lower = (name || '').toLowerCase();
+  if (lower.includes('electric') || lower.includes('power') || lower.includes('grid')) return Zap;
+  if (lower.includes('diesel') || lower.includes('fuel') || lower.includes('generator') || lower.includes('gas')) return Flame;
+  if (lower.includes('waste') || lower.includes('scrap') || lower.includes('disposal')) return Recycle;
+  if (lower.includes('plastic') || lower.includes('material') || lower.includes('polymer') || lower.includes('resin')) return Box;
+  if (category === 'energy') return Zap;
+  if (category === 'waste') return Recycle;
+  return Box;
 };
 
 export default function OverviewDashboard() {
@@ -131,7 +148,7 @@ export default function OverviewDashboard() {
   return (
     <div className="space-y-6">
       {/* Enterprise Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 pb-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-gray-200 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider bg-indigo-50 text-[#5546E8] border border-indigo-100 font-mono">
@@ -147,33 +164,37 @@ export default function OverviewDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Action Buttons Toolbar */}
+        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 shrink-0">
           <button
             onClick={() => setCsvModalOpen(true)}
-            className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 text-[#5546E8] bg-indigo-50/70 border-indigo-200 hover:bg-indigo-100/70 shadow-2xs font-semibold"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-[#5546E8] bg-indigo-50/80 border border-indigo-200/80 hover:bg-indigo-100 hover:border-indigo-300 shadow-2xs transition-all duration-150 whitespace-nowrap active:scale-[0.98]"
           >
-            <FileUp className="w-3.5 h-3.5 text-[#5546E8]" />
+            <UploadCloud className="w-4 h-4 text-[#5546E8]" />
             <span>Import Activity CSV</span>
           </button>
+
           <Link
             to={`/facility/${activeFacility?.id || 'fac-abc-001'}/intake`}
-            className="btn-secondary text-xs py-2 px-3"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-2xs transition-all duration-150 whitespace-nowrap active:scale-[0.98]"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
+            <FileSpreadsheet className="w-4 h-4 text-gray-500" />
             <span>Edit Activity Inputs</span>
           </Link>
+
           <Link
             to={`/assessment/${assessmentId}/leak-points`}
-            className="btn-secondary text-xs py-2 px-3"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-2xs transition-all duration-150 whitespace-nowrap active:scale-[0.98]"
           >
-            <AlertOctagon className="w-3.5 h-3.5 text-amber-600" />
+            <AlertOctagon className="w-4 h-4 text-amber-500" />
             <span>View Leak Points</span>
           </Link>
+
           <Link
             to={`/assessment/${assessmentId}/recommendations`}
-            className="btn-primary text-xs py-2 px-3"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#5546E8] hover:bg-[#4335D6] shadow-sm hover:shadow transition-all duration-150 whitespace-nowrap active:scale-[0.98]"
           >
-            <Lightbulb className="w-3.5 h-3.5" />
+            <Lightbulb className="w-4 h-4 text-indigo-100" />
             <span>View Recommendations</span>
           </Link>
         </div>
@@ -193,7 +214,7 @@ export default function OverviewDashboard() {
         <KpiCard
           title="Hotspots Identified"
           value={leakPoints.length}
-          unit={`(${highSeverityCount} Critical)`}
+          unit="Active Sites"
           subtitle="Ranked emission sources"
           icon={AlertTriangle}
           badge={`${highSeverityCount} High Severity`}
@@ -223,9 +244,14 @@ export default function OverviewDashboard() {
         {/* Category Split Donut */}
         <div className="panel-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <div>
-              <h3 className="text-sm font-bold text-gray-900">Emissions by Process Category</h3>
-              <p className="text-xs text-gray-500">Energy vs. Materials vs. Waste balance</p>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#5546E8] shrink-0">
+                <PieChartIcon className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Emissions by Process Category</h3>
+                <p className="text-xs text-gray-500">Energy vs. Materials vs. Waste balance</p>
+              </div>
             </div>
             <span className="text-[11px] font-mono text-gray-400">GHG Protocol Scopes</span>
           </div>
@@ -257,7 +283,7 @@ export default function OverviewDashboard() {
             {/* Donut Center Stat */}
             <div className="absolute flex flex-col items-center justify-center pointer-events-none text-center">
               <span className="text-2xl font-bold font-mono text-gray-900">
-                {summary.total_co2e}
+                <AnimatedCounter value={summary.total_co2e} />
               </span>
               <span className="text-[10px] uppercase font-semibold text-gray-400 tracking-wider">
                 t CO₂e Total
@@ -285,9 +311,14 @@ export default function OverviewDashboard() {
         {/* Top Contributors Ranked Summary */}
         <div className="panel-card p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-sm font-bold text-gray-900">Top Emission Contributors</h3>
-              <p className="text-xs text-gray-500">Ranked by diagnostic contribution %</p>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Top Emission Contributors</h3>
+                <p className="text-xs text-gray-500">Ranked by diagnostic contribution %</p>
+              </div>
             </div>
             <Link
               to={`/assessment/${assessmentId}/leak-points`}
@@ -299,42 +330,57 @@ export default function OverviewDashboard() {
           </div>
 
           <div className="space-y-3 my-auto">
-            {leakPoints.slice(0, 4).map((lp) => (
-              <div
-                key={lp.leak_point_ref}
-                className="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-md bg-white border border-gray-200 text-gray-700 flex items-center justify-center text-xs font-bold font-mono shadow-xs">
-                    #{lp.rank}
-                  </span>
-                  <div>
-                    <p className="text-xs font-bold text-gray-900">{lp.name}</p>
-                    <p className="text-[11px] text-gray-500 capitalize">{lp.category} stream</p>
-                  </div>
-                </div>
+            {leakPoints.slice(0, 4).map((lp) => {
+              const ContributorIcon = getContributorIcon(lp.category, lp.name);
+              const themeStyle =
+                lp.category === 'energy'
+                  ? 'bg-amber-50 text-amber-600 border-amber-200/80'
+                  : lp.category === 'waste'
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200/80'
+                  : 'bg-indigo-50 text-[#5546E8] border-indigo-200/80';
 
-                <div className="text-right">
-                  <p className="text-xs font-mono font-bold text-gray-900">{lp.co2e} t CO₂e</p>
-                  <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                    <span className="text-[11px] font-mono font-semibold text-[#5546E8]">
-                      {Math.round(lp.pct_contribution * 100)}%
-                    </span>
-                    <span
-                      className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded-full ${
-                        lp.severity === 'high'
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                          : lp.severity === 'medium'
-                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      }`}
-                    >
-                      {lp.severity}
-                    </span>
+              return (
+                <div
+                  key={lp.leak_point_ref}
+                  className="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between transition-colors hover:bg-gray-100/70"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-md bg-white border border-gray-200 text-gray-700 flex items-center justify-center text-xs font-bold font-mono shadow-2xs">
+                        {lp.rank}
+                      </span>
+                      <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 ${themeStyle}`}>
+                        <ContributorIcon className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">{lp.name}</p>
+                      <p className="text-[11px] text-gray-500 capitalize">{lp.category} stream</p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-xs font-mono font-bold text-gray-900">{lp.co2e} t CO₂e</p>
+                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                      <span className="text-[11px] font-mono font-semibold text-[#5546E8]">
+                        {Math.round(lp.pct_contribution * 100)}%
+                      </span>
+                      <span
+                        className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded-full ${
+                          lp.severity === 'high'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : lp.severity === 'medium'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}
+                      >
+                        {lp.severity}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">

@@ -9,12 +9,16 @@ import {
   Menu,
   ShieldCheck,
   Building2,
-  Search,
-  Bell,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { useFacilityAssessment } from '../../context/FacilityAssessmentContext';
 
-export default function TopNav({ onToggleMobileMenu }) {
+export default function TopNav({
+  onToggleMobileMenu,
+  sidebarCollapsed = false,
+  onToggleSidebar,
+}) {
   const {
     activeFacility,
     facilities,
@@ -35,14 +39,28 @@ export default function TopNav({ onToggleMobileMenu }) {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-      {/* Left: Mobile Toggle & Facility Switcher */}
-      <div className="flex items-center gap-3">
+      {/* Left: Mobile Toggle, Desktop Sidebar Toggle & Facility Switcher */}
+      <div className="flex items-center gap-2 sm:gap-3">
         <button
           onClick={onToggleMobileMenu}
           className="lg:hidden p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           aria-label="Toggle navigation menu"
         >
           <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Desktop Sidebar Shrink / Expand Trigger */}
+        <button
+          onClick={onToggleSidebar}
+          className="hidden lg:flex p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Shrink sidebar to icons'}
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Shrink sidebar to icons'}
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen className="w-5 h-5 text-[#5546E8]" />
+          ) : (
+            <PanelLeftClose className="w-5 h-5 text-gray-600" />
+          )}
         </button>
 
         {/* Facility Dropdown */}
@@ -116,18 +134,6 @@ export default function TopNav({ onToggleMobileMenu }) {
         </div>
       </div>
 
-      {/* Center Search / Filter (subtle, rounded enterprise style) */}
-      <div className="hidden md:flex items-center flex-1 max-w-sm mx-6">
-        <div className="relative w-full">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search operational lines, hotspots, interventions..."
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#5546E8] focus:bg-white focus:ring-2 focus:ring-[#5546E8]/10 transition-all"
-          />
-        </div>
-      </div>
-
       {/* Right: Active Assessment Pill & User Profile */}
       <div className="flex items-center gap-3">
         {/* Assessment Status Pill */}
@@ -155,15 +161,6 @@ export default function TopNav({ onToggleMobileMenu }) {
             </span>
           </div>
         )}
-
-        {/* Notifications Icon */}
-        <button
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative"
-          title="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="w-2 h-2 rounded-full bg-[#5546E8] absolute top-1.5 right-1.5 ring-2 ring-white" />
-        </button>
 
         {/* User Profile with Role Badge */}
         <div className="relative flex items-center gap-2">

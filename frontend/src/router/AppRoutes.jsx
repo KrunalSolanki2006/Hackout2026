@@ -11,6 +11,7 @@ import RecommendationDashboard from '../pages/RecommendationDashboard';
 import WhatIfSimulator from '../pages/WhatIfSimulator';
 import ActionRoadmap from '../pages/ActionRoadmap';
 import ReportsHistory from '../pages/ReportsHistory';
+import LandingPage from '../pages/LandingPage';
 import { useFacilityAssessment } from '../context/FacilityAssessmentContext';
 
 export default function AppRoutes() {
@@ -21,6 +22,10 @@ export default function AppRoutes() {
 
   return (
     <Routes>
+      {/* Public Landing Page */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/landing" element={<LandingPage />} />
+
       {/* Public / Auth routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Login />} />

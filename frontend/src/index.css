@@ -77,6 +77,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    white-space: nowrap;
     background-color: #5546E8;
     color: #FFFFFF;
     font-weight: 500;
@@ -100,6 +101,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    white-space: nowrap;
     background-color: #FFFFFF;
     border: 1px solid #E5E7EB;
     color: #374151;
@@ -121,6 +123,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    white-space: nowrap;
     background-color: #FDE8E8;
     border: 1px solid #F8B4B4;
     color: #9B1C1C;
@@ -139,5 +142,91 @@
   /* Tabular numbers for financial and CO2e values */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Enterprise Smooth Scroll & Scroll Reveal Animations */
+  .reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .reveal-on-scroll.is-revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Animated Shimmer Text */
+  @keyframes textShimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-text-shimmer {
+    background-size: 200% auto;
+    animation: textShimmer 4s ease infinite;
+  }
+
+  /* Floating animation */
+  @keyframes floatSlow {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float-slow {
+    animation: floatSlow 5s ease-in-out infinite;
+  }
+
+  /* Modal & Popup Animations */
+  @keyframes popupScale {
+    0% {
+      opacity: 0;
+      transform: scale(0.92) translateY(12px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .animate-popup {
+    animation: popupScale 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Notification Slide in */
+  @keyframes slideInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-in-up {
+    animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+@media print {
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

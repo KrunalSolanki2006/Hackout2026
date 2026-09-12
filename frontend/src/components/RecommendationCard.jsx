@@ -9,7 +9,6 @@ import {
   XCircle,
   Eye,
   Sliders,
-  Sparkles,
 } from 'lucide-react';
 import ExplanationChecklist from './ExplanationChecklist';
 
@@ -85,11 +84,6 @@ export default function RecommendationCard({
               {implementation_difficulty}
             </span>
 
-            {/* Score Source Badge */}
-            <span className="px-2 py-0.5 rounded-md text-[11px] font-medium text-[#5546E8] bg-indigo-50 border border-indigo-100 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[#5546E8]" />
-              <span>{score_source === 'ml' ? 'ML Ranker' : 'Rule-based'}</span>
-            </span>
 
             {/* Leak point reference tag */}
             <span className="px-2 py-0.5 rounded-md text-[11px] text-gray-600 bg-gray-100 border border-gray-200 font-mono">

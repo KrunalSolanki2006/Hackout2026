@@ -123,23 +123,25 @@ export default function WhatIfSimulator() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
           <button
             onClick={resetSelection}
             disabled={selectedIds.length === 0}
-            className="btn-secondary text-xs py-1.5 px-3"
+            className="btn-secondary h-9 px-3.5 text-xs font-medium whitespace-nowrap inline-flex items-center justify-center gap-1.5 rounded-lg shrink-0"
             title="Reset selections"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset</span>
+            <RotateCcw className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Reset</span>
           </button>
           <button
             onClick={handleApplySelected}
             disabled={selectedIds.length === 0 || applying}
-            className="btn-primary text-xs py-1.5 px-3.5"
+            className="btn-primary h-9 px-4 text-xs font-medium whitespace-nowrap inline-flex items-center justify-center gap-2 rounded-lg shrink-0"
           >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{applying ? 'Committing...' : `Apply Selected (${selectedIds.length})`}</span>
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">
+              {applying ? 'Committing...' : `Apply Selected (${selectedIds.length})`}
+            </span>
           </button>
         </div>
       </div>

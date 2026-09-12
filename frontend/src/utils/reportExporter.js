@@ -210,7 +210,7 @@ export function exportAssessmentPDF({ facility, assessment, summary, leakPoints 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(`#${idx + 1}  ${lp.name || lp.leak_point_ref}`, 19, y + 5.2);
+      doc.text(`${idx + 1}.  ${lp.name || lp.leak_point_ref}`, 19, y + 5.2);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);

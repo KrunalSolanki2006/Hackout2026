@@ -14,6 +14,7 @@ import ErrorBanner from '../components/ErrorBanner';
 import { useAssessmentSummary } from '../hooks/useAssessmentSummary';
 import { useFacilityAssessment } from '../context/FacilityAssessmentContext';
 import { assessmentsApi } from '../api/assessments';
+import AnimatedCounter from '../components/AnimatedCounter';
 
 export default function EmissionAnalysisDashboard() {
   const { id } = useParams();
@@ -174,7 +175,7 @@ export default function EmissionAnalysisDashboard() {
           <div>
             <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Energy Subtotal</span>
             <p className="text-xl font-bold font-mono text-gray-900 mt-0.5">
-              {summary.category_totals?.energy || 0} <span className="text-xs font-normal text-gray-500">t CO₂e</span>
+              <AnimatedCounter value={summary.category_totals?.energy || 0} /> <span className="text-xs font-normal text-gray-500">t CO₂e</span>
             </p>
             <p className="text-[11px] text-amber-700 mt-0.5 font-medium">Scope 1 & 2 (Fuels / Grid)</p>
           </div>
@@ -187,7 +188,7 @@ export default function EmissionAnalysisDashboard() {
           <div>
             <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Materials Subtotal</span>
             <p className="text-xl font-bold font-mono text-gray-900 mt-0.5">
-              {summary.category_totals?.material || 0} <span className="text-xs font-normal text-gray-500">t CO₂e</span>
+              <AnimatedCounter value={summary.category_totals?.material || 0} /> <span className="text-xs font-normal text-gray-500">t CO₂e</span>
             </p>
             <p className="text-[11px] text-[#5546E8] mt-0.5 font-medium">Scope 3 (Purchased Polymers)</p>
           </div>
@@ -200,7 +201,7 @@ export default function EmissionAnalysisDashboard() {
           <div>
             <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Waste Subtotal</span>
             <p className="text-xl font-bold font-mono text-gray-900 mt-0.5">
-              {summary.category_totals?.waste || 0} <span className="text-xs font-normal text-gray-500">t CO₂e</span>
+              <AnimatedCounter value={summary.category_totals?.waste || 0} /> <span className="text-xs font-normal text-gray-500">t CO₂e</span>
             </p>
             <p className="text-[11px] text-emerald-700 mt-0.5 font-medium">Scope 3 (Disposal / Recycle)</p>
           </div>
